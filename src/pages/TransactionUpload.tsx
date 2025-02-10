@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Upload, 
@@ -9,7 +9,7 @@ import {
   XCircle,
   Download
 } from 'lucide-react';
-import { read, utils } from 'xlsx';
+import { read, utils, writeFile } from 'xlsx';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -25,6 +25,7 @@ type ParsedTransaction = {
   category_id: string;
   amount: number;
   description?: string;
+  category_name?: string; // For display purposes
 };
 
 type ValidationError = {
@@ -35,12 +36,15 @@ type ValidationError = {
 
 export default function TransactionUpload() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [parsedData, setParsedData] = useState<ParsedTransaction[]>([]);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [uploadStats, setUploadStats] = useState({ total: 0, success: 0, failed: 0 });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     if (!user) return;
@@ -66,8 +70,14 @@ export default function TransactionUpload() {
       const rowNumber = index + 2; // Add 2 to account for header row and 0-based index
       const errors: ValidationError[] = [];
 
+      // Convert date to string if it's a Date object (Excel sometimes parses dates automatically)
+      const dateStr = row.date instanceof Date 
+        ? row.date.toISOString().split('T')[0]
+        : String(row.date).trim();
+
       // Validate date
-      if (!row.date || !Date.parse(row.date)) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateStr || !dateRegex.test(dateStr) || !Date.parse(dateStr)) {
         errors.push({
           row: rowNumber,
           column: 'date',
@@ -75,8 +85,11 @@ export default function TransactionUpload() {
         });
       }
 
+      // Convert type to lowercase string and trim
+      const typeStr = String(row.type || '').trim().toLowerCase();
+
       // Validate type
-      if (!row.type || !['income', 'expense'].includes(row.type.toLowerCase())) {
+      if (!typeStr || !['income', 'expense'].includes(typeStr)) {
         errors.push({
           row: rowNumber,
           column: 'type',
@@ -84,22 +97,29 @@ export default function TransactionUpload() {
         });
       }
 
+      // Convert category to string and trim
+      const categoryStr = String(row.category || '').trim();
+
       // Validate category
       const category = categories.find(c => 
-        c.name.toLowerCase() === row.category?.toLowerCase() &&
-        c.income_category === (row.type?.toLowerCase() === 'income')
+        c.name.toLowerCase() === categoryStr.toLowerCase() &&
+        c.income_category === (typeStr === 'income')
       );
       
       if (!category) {
         errors.push({
           row: rowNumber,
           column: 'category',
-          message: `Category "${row.category}" not found for type ${row.type}`
+          message: `Category "${categoryStr}" not found for type ${typeStr}`
         });
       }
 
+      // Convert amount to number
+      const amount = typeof row.amount === 'number' 
+        ? row.amount 
+        : parseFloat(String(row.amount).replace(/[^0-9.-]+/g, ''));
+
       // Validate amount
-      const amount = parseFloat(row.amount);
       if (isNaN(amount) || amount <= 0) {
         errors.push({
           row: rowNumber,
@@ -108,13 +128,14 @@ export default function TransactionUpload() {
         });
       }
 
-      if (errors.length === 0) {
+      if (errors.length === 0 && category) {
         validTransactions.push({
-          date: new Date(row.date).toISOString().split('T')[0],
-          type: row.type.toLowerCase(),
-          category_id: category!.id,
+          date: dateStr,
+          type: typeStr as 'income' | 'expense',
+          category_id: category.id,
+          category_name: category.name,
           amount: amount,
-          description: row.description || undefined
+          description: row.description ? String(row.description).trim() : undefined
         });
       } else {
         validationErrors.push(...errors);
@@ -128,11 +149,12 @@ export default function TransactionUpload() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Reset states
+    setSelectedFile(file);
     setParsedData([]);
     setErrors([]);
     setUploadStatus('idle');
     setUploadStats({ total: 0, success: 0, failed: 0 });
+    setShowPreview(false);
 
     // Fetch categories if not already loaded
     if (categories.length === 0) {
@@ -150,6 +172,10 @@ export default function TransactionUpload() {
         const [validTransactions, validationErrors] = validateTransactions(jsonData);
         setParsedData(validTransactions);
         setErrors(validationErrors);
+
+        if (validTransactions.length > 0 && validationErrors.length === 0) {
+          setShowPreview(true);
+        }
       };
       reader.readAsArrayBuffer(file);
     } catch (error) {
@@ -194,6 +220,13 @@ export default function TransactionUpload() {
       }
 
       setUploadStatus(failedCount === 0 ? 'success' : 'error');
+      
+      if (failedCount === 0) {
+        // Wait a bit before redirecting
+        setTimeout(() => {
+          navigate('/transactions');
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error uploading transactions:', error);
       setUploadStatus('error');
@@ -223,15 +256,12 @@ export default function TransactionUpload() {
     const ws = utils.json_to_sheet(template);
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, 'Template');
-    
-    // Generate and download file
-    const fileName = 'transaction_upload_template.xlsx';
-    utils.writeFile(wb, fileName);
+    writeFile(wb, 'transaction_upload_template.csv');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <Link 
             to="/transactions" 
@@ -242,147 +272,220 @@ export default function TransactionUpload() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Upload Transactions</h1>
           <p className="text-gray-600">
-            Import your transactions from a spreadsheet file (CSV or XLSX).
+            Import your transactions from a CSV file.
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Instructions</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">1. Prepare Your File</h3>
-              <p className="text-gray-600 mb-2">
-                Your spreadsheet should have the following columns:
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <code className="text-sm">
-                  date, type, category, amount, description (optional)
-                </code>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">2. Format Requirements</h3>
-              <ul className="list-disc list-inside text-gray-600 space-y-1">
-                <li>Date: YYYY-MM-DD format (e.g., 2024-02-15)</li>
-                <li>Type: Either "income" or "expense"</li>
-                <li>Category: Must match one of your existing categories</li>
-                <li>Amount: Positive number (e.g., 150.50)</li>
-                <li>Description: Optional text description</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">3. Download Template</h3>
-              <button
-                onClick={downloadTemplate}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
-              >
-                <Download size={16} />
-                Download Example Template
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="mb-6">
-            <label 
-              className="block w-full cursor-pointer"
-            >
-              <input
-                type="file"
-                className="hidden"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-              />
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
-                <FileSpreadsheet className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                  Click to select or drag and drop your file here
-                </p>
-                <p className="text-xs text-gray-500">
-                  Supported formats: CSV, XLSX
-                </p>
-              </div>
-            </label>
-          </div>
-
-          {errors.length > 0 && (
-            <div className="mb-6">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-red-800 font-medium mb-2">
-                  <AlertCircle size={20} />
-                  Validation Errors
+        {!showPreview ? (
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Instructions</h2>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-2">1. Prepare Your File</h3>
+                  <p className="text-gray-600 mb-2">
+                    Your CSV file should have the following columns:
+                  </p>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <code className="text-sm">
+                      date, type, category, amount, description (optional)
+                    </code>
+                  </div>
                 </div>
-                <ul className="space-y-1 text-sm text-red-700">
-                  {errors.map((error, index) => (
-                    <li key={index}>
-                      Row {error.row}, {error.column}: {error.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
 
-          {parsedData.length > 0 && errors.length === 0 && (
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-800">
-                  <CheckCircle2 size={20} />
-                  <span>
-                    {parsedData.length} valid transaction{parsedData.length !== 1 ? 's' : ''} ready to upload
-                  </span>
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-2">2. Format Requirements</h3>
+                  <ul className="list-disc list-inside text-gray-600 space-y-1">
+                    <li>Date: YYYY-MM-DD format (e.g., 2024-02-15)</li>
+                    <li>Type: Either "income" or "expense"</li>
+                    <li>Category: Must match one of your existing categories</li>
+                    <li>Amount: Positive number (e.g., 150.50)</li>
+                    <li>Description: Optional text description</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-2">3. Download Template</h3>
+                  <button
+                    onClick={downloadTemplate}
+                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
+                  >
+                    <Download size={16} />
+                    Download CSV Template
+                  </button>
                 </div>
               </div>
+            </div>
 
-              <button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload size={20} />
-                    Upload Transactions
-                  </>
-                )}
-              </button>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="mb-6">
+                <label className="block w-full cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
+                    <FileSpreadsheet className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2 text-sm text-gray-600">
+                      Click to select or drag and drop your file here
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Supported formats: CSV, XLSX
+                    </p>
+                  </div>
+                </label>
+              </div>
 
-              {uploadStatus !== 'idle' && (
-                <div className={`mt-4 p-4 rounded-lg ${
-                  uploadStatus === 'success' 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-red-50 border border-red-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    {uploadStatus === 'success' ? (
-                      <CheckCircle2 className="text-green-600" size={20} />
-                    ) : (
-                      <XCircle className="text-red-600" size={20} />
-                    )}
-                    <div>
-                      <p className={`font-medium ${
-                        uploadStatus === 'success' ? 'text-green-800' : 'text-red-800'
-                      }`}>
-                        Upload {uploadStatus === 'success' ? 'Complete' : 'Completed with Errors'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {uploadStats.success} successful, {uploadStats.failed} failed
-                      </p>
+              {selectedFile && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FileSpreadsheet size={16} />
+                  <span>{selectedFile.name}</span>
+                </div>
+              )}
+
+              {errors.length > 0 && (
+                <div className="mt-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-800 font-medium mb-2">
+                      <AlertCircle size={20} />
+                      Validation Errors
                     </div>
+                    <ul className="space-y-1 text-sm text-red-700">
+                      {errors.map((error, index) => (
+                        <li key={index}>
+                          Row {error.row}, {error.column}: {error.message}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Preview Transactions</h2>
+                <p className="text-sm text-gray-600">
+                  Review the transactions before importing
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    setShowPreview(false);
+                    setSelectedFile(null);
+                    setParsedData([]);
+                  }}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={20} />
+                      Import Transactions
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Category
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {parsedData.map((transaction, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(transaction.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            transaction.type === 'income' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {transaction.category_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                            {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {transaction.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {uploadStatus !== 'idle' && (
+              <div className={`mt-4 p-4 rounded-lg ${
+                uploadStatus === 'success' 
+                  ? 'bg-green-50 border border-green-200' 
+                  : 'bg-red-50 border border-red-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {uploadStatus === 'success' ? (
+                    <CheckCircle2 className="text-green-600" size={20} />
+                  ) : (
+                    <XCircle className="text-red-600" size={20} />
+                  )}
+                  <div>
+                    <p className={`font-medium ${
+                      uploadStatus === 'success' ? 'text-green-800' : 'text-red-800'
+                    }`}>
+                      Upload {uploadStatus === 'success' ? 'Complete' : 'Completed with Errors'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {uploadStats.success} successful, {uploadStats.failed} failed
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

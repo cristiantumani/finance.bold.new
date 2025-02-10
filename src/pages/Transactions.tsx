@@ -9,10 +9,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Upload
+  Upload,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { utils, writeFile } from 'xlsx';
 import TransactionForm from '../components/TransactionForm';
 import type { Transaction } from '../types/finance';
 
@@ -20,6 +26,14 @@ type TransactionWithCategory = Transaction & {
   categories: {
     name: string;
   } | null;
+};
+
+type SortField = 'date' | 'type' | 'category' | 'description' | 'amount';
+type SortDirection = 'asc' | 'desc';
+
+type SortConfig = {
+  field: SortField;
+  direction: SortDirection;
 };
 
 export default function Transactions() {
@@ -32,6 +46,9 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [sort, setSort] = useState<SortConfig>({ field: 'date', direction: 'desc' });
+  const [showDownloadOptions, setShowDownloadOptions] = useState(false);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const itemsPerPage = 10;
 
   const fetchTransactions = async () => {
@@ -57,13 +74,35 @@ export default function Transactions() {
         query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`);
       }
 
+      // Apply sorting
+      if (sort.field === 'category') {
+        // For category sorting, we need to join with categories table
+        query = query.order('categories(name)', { ascending: sort.direction === 'asc' });
+      } else {
+        // For other fields, sort directly
+        switch (sort.field) {
+          case 'date':
+            query = query.order('date', { ascending: sort.direction === 'asc' });
+            // Add created_at as secondary sort to maintain consistent order for same-date entries
+            query = query.order('created_at', { ascending: sort.direction === 'asc' });
+            break;
+          case 'type':
+            query = query.order('type', { ascending: sort.direction === 'asc' });
+            break;
+          case 'description':
+            query = query.order('description', { ascending: sort.direction === 'asc' });
+            break;
+          case 'amount':
+            query = query.order('amount', { ascending: sort.direction === 'asc' });
+            break;
+        }
+      }
+
       // Calculate pagination
       const from = (currentPage - 1) * itemsPerPage;
       const to = from + itemsPerPage - 1;
 
-      const { data, count, error } = await query
-        .order('date', { ascending: false })
-        .range(from, to);
+      const { data, count, error } = await query.range(from, to);
 
       if (error) throw error;
 
@@ -78,7 +117,74 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions();
-  }, [user, currentPage, searchTerm, filter]);
+  }, [user, currentPage, searchTerm, filter, sort]);
+
+  useEffect(() => {
+    const fetchAvailableMonths = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('date')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        // Extract unique months from transaction dates
+        const months = new Set(
+          data.map(t => t.date.substring(0, 7)) // Get YYYY-MM from date
+        );
+
+        setAvailableMonths(Array.from(months));
+      } catch (error) {
+        console.error('Error fetching available months:', error);
+      }
+    };
+
+    fetchAvailableMonths();
+  }, [user]);
+
+  const handleSort = (field: SortField) => {
+    setSort(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+
+  const renderSortHeader = (field: SortField, label: string) => {
+    const isActive = sort.field === field;
+    return (
+      <th 
+        onClick={() => handleSort(field)}
+        className="px-6 py-3 text-left cursor-pointer group"
+      >
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium tracking-wider transition-colors ${
+            isActive ? 'text-indigo-600' : 'text-gray-500 group-hover:text-gray-700'
+          } uppercase`}>
+            {label}
+          </span>
+          <div className="flex items-center">
+            {isActive ? (
+              sort.direction === 'asc' ? (
+                <ArrowUp size={16} className="text-indigo-600" />
+              ) : (
+                <ArrowDown size={16} className="text-indigo-600" />
+              )
+            ) : (
+              <ArrowUpDown size={16} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
+          </div>
+        </div>
+        {isActive && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
+        )}
+      </th>
+    );
+  };
 
   const handleAddTransaction = async (data: Omit<Transaction, 'id'>) => {
     if (!user) return;
@@ -139,6 +245,62 @@ export default function Transactions() {
     }
   };
 
+  const handleDownload = async (month?: string) => {
+    if (!user) return;
+
+    try {
+      let query = supabase
+        .from('transactions')
+        .select(`
+          *,
+          categories (
+            name
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (month) {
+        // If month is provided (format: YYYY-MM), filter by that month
+        const startDate = `${month}-01`;
+        const endDate = new Date(month.split('-')[0], parseInt(month.split('-')[1]), 0)
+          .toISOString()
+          .split('T')[0];
+        
+        query = query
+          .gte('date', startDate)
+          .lte('date', endDate);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform data for export
+      const exportData = data.map(transaction => ({
+        Date: new Date(transaction.date).toLocaleDateString(),
+        Type: transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1),
+        Category: transaction.categories?.name || 'Uncategorized',
+        Amount: transaction.amount,
+        Description: transaction.description || ''
+      }));
+
+      // Create workbook and worksheet
+      const ws = utils.json_to_sheet(exportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Generate filename
+      const filename = month 
+        ? `transactions_${month}.xlsx`
+        : 'all_transactions.xlsx';
+
+      // Download file
+      writeFile(wb, filename);
+    } catch (error) {
+      console.error('Error downloading transactions:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -157,6 +319,53 @@ export default function Transactions() {
           </Link>
         </div>
         <div className="flex gap-4">
+          <div className="relative">
+            <button
+              onClick={() => setShowDownloadOptions(!showDownloadOptions)}
+              className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+            >
+              <Download size={20} />
+              Download
+            </button>
+
+            {showDownloadOptions && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                <button
+                  onClick={() => {
+                    handleDownload();
+                    setShowDownloadOptions(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Download size={16} />
+                  Download All Transactions
+                </button>
+                <div className="border-t border-gray-100 my-2" />
+                <div className="px-4 py-1">
+                  <p className="text-xs font-medium text-gray-500">Download by Month</p>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {availableMonths.map(month => (
+                    <button
+                      key={month}
+                      onClick={() => {
+                        handleDownload(month);
+                        setShowDownloadOptions(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Calendar size={16} />
+                      {new Date(month + '-01').toLocaleDateString('default', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <Link 
             to="/upload"
             className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-indigo-600"
@@ -183,7 +392,10 @@ export default function Transactions() {
                 type="text"
                 placeholder="Search transactions..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when search changes
+                }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
@@ -191,7 +403,10 @@ export default function Transactions() {
               <Filter size={20} className="text-gray-400" />
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as 'all' | 'income' | 'expense')}
+                onChange={(e) => {
+                  setFilter(e.target.value as 'all' | 'income' | 'expense');
+                  setCurrentPage(1); // Reset to first page when filter changes
+                }}
                 className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">All</option>
@@ -206,12 +421,14 @@ export default function Transactions() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                {renderSortHeader('date', 'Date')}
+                {renderSortHeader('type', 'Type')}
+                {renderSortHeader('category', 'Category')}
+                {renderSortHeader('description', 'Description')}
+                {renderSortHeader('amount', 'Amount')}
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">

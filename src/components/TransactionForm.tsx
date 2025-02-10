@@ -20,6 +20,14 @@ type TransactionFormProps = {
   title: string;
 };
 
+const defaultFormData = {
+  type: 'expense' as const,
+  category_id: '',
+  amount: '',
+  description: '',
+  date: new Date().toISOString().split('T')[0]
+};
+
 export default function TransactionForm({
   isOpen,
   onClose,
@@ -29,13 +37,27 @@ export default function TransactionForm({
 }: TransactionFormProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [formData, setFormData] = useState({
-    type: initialData?.type || 'expense',
-    category_id: initialData?.category_id || '',
-    amount: initialData?.amount?.toString() || '',
-    description: initialData?.description || '',
-    date: initialData?.date || new Date().toISOString().split('T')[0]
-  });
+  const [formData, setFormData] = useState(defaultFormData);
+
+  useEffect(() => {
+    // Reset form when modal is opened/closed
+    if (!isOpen) {
+      setFormData(defaultFormData);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    // Only set form data if we have initialData (editing mode)
+    if (initialData) {
+      setFormData({
+        type: initialData.type || defaultFormData.type,
+        category_id: initialData.category_id || defaultFormData.category_id,
+        amount: initialData.amount?.toString() || defaultFormData.amount,
+        description: initialData.description || defaultFormData.description,
+        date: initialData.date || defaultFormData.date
+      });
+    }
+  }, [initialData]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -50,24 +72,13 @@ export default function TransactionForm({
 
         if (error) throw error;
         setCategories(data);
-
-        // If we have initialData, find the matching category
-        if (initialData?.category_id) {
-          const category = data.find(c => c.id === initialData.category_id);
-          if (category) {
-            setFormData(prev => ({
-              ...prev,
-              category_id: category.id
-            }));
-          }
-        }
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
     };
 
     fetchCategories();
-  }, [user, initialData]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +88,7 @@ export default function TransactionForm({
     
     await onSubmit({
       amount: Number(formData.amount),
-      type: formData.type as 'income' | 'expense',
+      type: formData.type,
       category_id: formData.category_id,
       description: formData.description,
       date: formData.date,

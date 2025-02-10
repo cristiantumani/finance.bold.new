@@ -16,6 +16,8 @@ export type Transaction = {
   date: string;
   tags: string[];
   expense_type?: ExpenseType;
+  suggested_category_id?: string;
+  suggestion_confidence?: number;
 };
 
 export type Budget = {
@@ -31,4 +33,17 @@ export type FinancialHealth = {
   monthlyIncome: number;
   monthlyExpenses: number;
   savingsRate: number;
+};
+
+export type AISuggestion = {
+  id: string;
+  type: 'spending_alert' | 'budget_insight' | 'pattern_detected';
+  category_id: string;
+  message: string;
+  priority: 1 | 2 | 3;
+  is_read: boolean;
+  created_at: string;
+  category?: {
+    name: string;
+  };
 };

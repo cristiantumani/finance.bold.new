@@ -11,7 +11,7 @@ import {
   ChevronDown,
   FolderOpen,
   Calculator,
-  HelpCircle
+  Upload
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -30,7 +30,8 @@ import { Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import TransactionForm from './TransactionForm';
-import type { Transaction, Budget, FinancialHealth } from '../types/finance';
+import QuickTransactionForm from './QuickTransactionForm';
+import type { Transaction, Budget, FinancialHealth, AISuggestion } from '../types/finance';
 
 // Register ChartJS components
 ChartJS.register(
@@ -100,15 +101,15 @@ export default function Dashboard() {
   });
 
   const handleMoreOptionsClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event from bubbling up
+    e.stopPropagation();
     const button = e.currentTarget;
     const rect = button.getBoundingClientRect();
     
     setDropdownState({
       isOpen: !dropdownState.isOpen,
       position: {
-        top: rect.bottom + 5, // Add small gap
-        left: rect.right - 224 // 224px is width of dropdown (w-56)
+        top: rect.bottom + 5,
+        left: rect.right - 224
       }
     });
   };
@@ -127,12 +128,85 @@ export default function Dashboard() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [dropdownState.isOpen]);
 
-  const fetchMonthlyStats = async () => {
+  const fetchData = async () => {
     if (!user) return;
 
-    const currentDate = new Date();
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    try {
+      // Fetch transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          categories (
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(5);
+
+      if (transactionsError) throw transactionsError;
+
+      // Fetch budgets
+      const { data: budgetsData, error: budgetsError } = await supabase
+        .from('budgets')
+        .select(`
+          *,
+          categories (
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('period', 'monthly');
+
+      if (budgetsError) throw budgetsError;
+
+      // Calculate financial health
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const { data: monthlyData, error: monthlyError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`);
+
+      if (monthlyError) throw monthlyError;
+
+      const monthlyIncome = monthlyData
+        ?.filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+
+      const monthlyExpenses = monthlyData
+        ?.filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+
+      const savingsRate = monthlyIncome > 0 
+        ? Math.round(((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)
+        : 0;
+
+      setTransactions(transactionsData as TransactionWithCategory[]);
+      setBudgets(budgetsData as BudgetWithCategory[]);
+      setFinancialHealth({
+        totalBalance: monthlyIncome - monthlyExpenses,
+        monthlyIncome,
+        monthlyExpenses,
+        savingsRate
+      });
+
+      // Fetch chart data
+      await Promise.all([
+        fetchMonthlyStats(),
+        fetchTrendData()
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMonthlyStats = async () => {
+    if (!user) return;
 
     try {
       // Fetch current month's expenses by category
@@ -147,8 +221,7 @@ export default function Dashboard() {
         `)
         .eq('user_id', user.id)
         .eq('type', 'expense')
-        .gte('date', firstDayOfMonth.toISOString())
-        .lte('date', lastDayOfMonth.toISOString());
+        .gte('date', new Date().toISOString().split('T')[0].slice(0, 7) + '-01');
 
       if (expenseError) throw expenseError;
 
@@ -274,81 +347,6 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error('Error fetching trend data:', error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      // Fetch transactions
-      const { data: transactionsData, error: transactionsError } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          categories (
-            name
-          )
-        `)
-        .eq('user_id', user?.id)
-        .order('date', { ascending: false })
-        .limit(5);
-
-      if (transactionsError) throw transactionsError;
-
-      // Fetch budgets
-      const { data: budgetsData, error: budgetsError } = await supabase
-        .from('budgets')
-        .select(`
-          *,
-          categories (
-            name
-          )
-        `)
-        .eq('user_id', user?.id)
-        .eq('period', 'monthly');
-
-      if (budgetsError) throw budgetsError;
-
-      // Calculate financial health
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .gte('date', `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`);
-
-      if (monthlyError) throw monthlyError;
-
-      const monthlyIncome = monthlyData
-        ?.filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
-
-      const monthlyExpenses = monthlyData
-        ?.filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
-
-      const savingsRate = monthlyIncome > 0 
-        ? Math.round(((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)
-        : 0;
-
-      setTransactions(transactionsData as TransactionWithCategory[]);
-      setBudgets(budgetsData as BudgetWithCategory[]);
-      setFinancialHealth({
-        totalBalance: monthlyIncome - monthlyExpenses,
-        monthlyIncome,
-        monthlyExpenses,
-        savingsRate
-      });
-
-      // Fetch chart data
-      await Promise.all([
-        fetchMonthlyStats(),
-        fetchTrendData()
-      ]);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -507,6 +505,13 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800">Financial Dashboard</h1>
         <div className="flex gap-4">
+          <Link 
+            to="/upload"
+            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-indigo-600"
+          >
+            <Upload size={20} />
+            Import Transactions
+          </Link>
           <button 
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -547,14 +552,6 @@ export default function Dashboard() {
                 >
                   <Calculator size={18} />
                   <span>Manage Budgets</span>
-                </Link>
-                <Link 
-                  to="/expense-types"
-                  className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
-                >
-                  <PieChart size={18} />
-                  <span>Understand Expense Types</span>
                 </Link>
               </div>
             )}
@@ -618,6 +615,10 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <QuickTransactionForm onSuccess={fetchData} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

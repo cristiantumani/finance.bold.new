@@ -9,7 +9,8 @@ import {
   Lock,
   Shuffle,
   Sliders,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -19,11 +20,13 @@ type Category = {
   id: string;
   name: string;
   expense_type: ExpenseType;
+  income_category: boolean;
 };
 
 type CategoryFormData = {
   name: string;
   expense_type: ExpenseType;
+  income_category: boolean;
   budget?: {
     limit: string;
     period: 'monthly' | 'weekly' | 'yearly';
@@ -39,6 +42,7 @@ export default function Categories() {
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
     expense_type: 'fixed',
+    income_category: false,
     budget: undefined
   });
   const [includeBudget, setIncludeBudget] = useState(false);
@@ -89,7 +93,8 @@ export default function Categories() {
           .from('categories')
           .update({
             name: formData.name,
-            expense_type: formData.expense_type
+            expense_type: formData.expense_type,
+            income_category: formData.income_category || false
           })
           .eq('id', editingCategory.id)
           .eq('user_id', user.id);
@@ -102,7 +107,8 @@ export default function Categories() {
           .insert([{
             user_id: user.id,
             name: formData.name,
-            expense_type: formData.expense_type
+            expense_type: formData.expense_type,
+            income_category: formData.income_category || false
           }])
           .select()
           .single();
@@ -115,7 +121,7 @@ export default function Categories() {
             .from('budgets')
             .insert([{
               user_id: user.id,
-              category: category.id,
+              category_id: category.id,
               budget_limit: Number(formData.budget.limit),
               period: formData.budget.period,
               spent: 0
@@ -127,7 +133,7 @@ export default function Categories() {
 
       setIsModalOpen(false);
       setEditingCategory(null);
-      setFormData({ name: '', expense_type: 'fixed', budget: undefined });
+      setFormData({ name: '', expense_type: 'fixed', income_category: false });
       setIncludeBudget(false);
       fetchCategories();
     } catch (error) {
@@ -139,7 +145,8 @@ export default function Categories() {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      expense_type: category.expense_type
+      expense_type: category.expense_type,
+      income_category: category.income_category
     });
     setIsModalOpen(true);
   };
@@ -182,12 +189,12 @@ export default function Categories() {
               <ArrowLeft size={16} />
               Back to Dashboard
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Expense Categories</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
           </div>
           <button 
             onClick={() => {
               setEditingCategory(null);
-              setFormData({ name: '', expense_type: 'fixed' });
+              setFormData({ name: '', expense_type: 'fixed', income_category: false });
               setIsModalOpen(true);
             }}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -205,10 +212,20 @@ export default function Categories() {
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                  {expenseTypeIcons[category.expense_type]}
+                  {category.income_category ? (
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <DollarSign className="text-green-600" size={20} />
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      {expenseTypeIcons[category.expense_type]}
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">{category.name}</h3>
-                    <p className="text-sm text-gray-500">{expenseTypeLabels[category.expense_type]}</p>
+                    <p className="text-sm text-gray-500">
+                      {category.income_category ? 'Income' : expenseTypeLabels[category.expense_type]}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -238,7 +255,7 @@ export default function Categories() {
                 <button
                   onClick={() => {
                     setEditingCategory(null);
-                    setFormData({ name: '', expense_type: 'fixed' });
+                    setFormData({ name: '', expense_type: 'fixed', income_category: false });
                     setIsModalOpen(true);
                   }}
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
@@ -263,7 +280,7 @@ export default function Categories() {
                 onClick={() => {
                   setIsModalOpen(false);
                   setEditingCategory(null);
-                  setFormData({ name: '', expense_type: 'fixed', budget: undefined });
+                  setFormData({ name: '', expense_type: 'fixed', income_category: false });
                   setIncludeBudget(false);
                 }}
                 className="text-gray-500 hover:text-gray-700"
@@ -285,37 +302,60 @@ export default function Categories() {
                   placeholder="Enter category name"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expense Type
+                  Category Type
                 </label>
                 <div className="space-y-2">
-                  {Object.entries(expenseTypeLabels).map(([value, label]) => (
-                    <label 
-                      key={value}
-                      className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="expense_type"
-                        value={value}
-                        checked={formData.expense_type === value}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          expense_type: e.target.value as ExpenseType 
-                        })}
-                        className="mr-3"
-                      />
-                      <div className="flex items-center gap-2">
-                        {expenseTypeIcons[value as ExpenseType]}
-                        <span className="font-medium text-gray-900">{label}</span>
-                      </div>
-                    </label>
-                  ))}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.income_category}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        income_category: e.target.checked
+                      })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Income Category</span>
+                  </label>
                 </div>
               </div>
 
-              {!editingCategory && (
+              {!formData.income_category && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expense Type
+                  </label>
+                  <div className="space-y-2">
+                    {Object.entries(expenseTypeLabels).map(([value, label]) => (
+                      <label 
+                        key={value}
+                        className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="expense_type"
+                          value={value}
+                          checked={formData.expense_type === value}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            expense_type: e.target.value as ExpenseType 
+                          })}
+                          className="mr-3"
+                        />
+                        <div className="flex items-center gap-2">
+                          {expenseTypeIcons[value as ExpenseType]}
+                          <span className="font-medium text-gray-900">{label}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!editingCategory && !formData.income_category && (
                 <div className="border-t pt-4 mt-4">
                   <label className="flex items-center mb-4">
                     <input
@@ -393,7 +433,7 @@ export default function Categories() {
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingCategory(null);
-                    setFormData({ name: '', expense_type: 'fixed', budget: undefined });
+                    setFormData({ name: '', expense_type: 'fixed', income_category: false });
                     setIncludeBudget(false);
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
