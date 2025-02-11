@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Wallet, 
   TrendingUp, 
@@ -11,39 +12,19 @@ import {
   ChevronDown,
   FolderOpen,
   Calculator,
-  Upload
+  Upload,
+  LogOut
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions
-} from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import TransactionForm from './TransactionForm';
 import QuickTransactionForm from './QuickTransactionForm';
-import type { Transaction, Budget, FinancialHealth, AISuggestion } from '../types/finance';
+import AccountSettings from './AccountSettings';
+import type { Transaction, Budget, FinancialHealth } from '../types/finance';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 type TransactionWithCategory = Transaction & {
   categories: {
@@ -66,7 +47,8 @@ type DropdownState = {
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
   const [financialHealth, setFinancialHealth] = useState<FinancialHealth>({
@@ -77,24 +59,7 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [monthlyStats, setMonthlyStats] = useState<{
-    categoryNames: string[];
-    expenses: number[];
-    budgets: number[];
-  }>({
-    categoryNames: [],
-    expenses: [],
-    budgets: []
-  });
-  const [trendData, setTrendData] = useState<{
-    labels: string[];
-    income: number[];
-    expenses: number[];
-  }>({
-    labels: [],
-    income: [],
-    expenses: []
-  });
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [dropdownState, setDropdownState] = useState<DropdownState>({
     isOpen: false,
     position: { top: 0, left: 0 }
@@ -112,6 +77,15 @@ export default function Dashboard() {
         left: rect.right - 224
       }
     });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   useEffect(() => {
@@ -156,8 +130,7 @@ export default function Dashboard() {
             name
           )
         `)
-        .eq('user_id', user.id)
-        .eq('period', 'monthly');
+        .eq('user_id', user.id);
 
       if (budgetsError) throw budgetsError;
 
@@ -192,161 +165,10 @@ export default function Dashboard() {
         monthlyExpenses,
         savingsRate
       });
-
-      // Fetch chart data
-      await Promise.all([
-        fetchMonthlyStats(),
-        fetchTrendData()
-      ]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMonthlyStats = async () => {
-    if (!user) return;
-
-    try {
-      // Fetch current month's expenses by category
-      const { data: expenseData, error: expenseError } = await supabase
-        .from('transactions')
-        .select(`
-          amount,
-          category_id,
-          categories (
-            name
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('type', 'expense')
-        .gte('date', new Date().toISOString().split('T')[0].slice(0, 7) + '-01');
-
-      if (expenseError) throw expenseError;
-
-      // Fetch budgets
-      const { data: budgetData, error: budgetError } = await supabase
-        .from('budgets')
-        .select(`
-          category_id,
-          budget_limit,
-          categories (
-            name
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('period', 'monthly');
-
-      if (budgetError) throw budgetError;
-
-      // Group expenses by category
-      const expensesByCategory = expenseData.reduce((acc: { [key: string]: { amount: number; name: string } }, transaction) => {
-        const categoryId = transaction.category_id;
-        if (!acc[categoryId]) {
-          acc[categoryId] = {
-            amount: 0,
-            name: transaction.categories?.name || 'Unknown'
-          };
-        }
-        acc[categoryId].amount += Number(transaction.amount);
-        return acc;
-      }, {});
-
-      // Convert to array and sort by amount
-      const sortedCategories = Object.entries(expensesByCategory)
-        .map(([categoryId, data]) => ({
-          categoryId,
-          name: data.name,
-          amount: data.amount,
-          budget: budgetData.find(b => b.category_id === categoryId)?.budget_limit || 0
-        }))
-        .sort((a, b) => b.amount - a.amount);
-
-      // Take top 7 categories
-      const top7 = sortedCategories.slice(0, 7);
-      const others = sortedCategories.slice(7);
-
-      // Calculate totals for "Others" category
-      const othersTotal = others.reduce((sum, cat) => sum + cat.amount, 0);
-      const othersBudget = others.reduce((sum, cat) => sum + cat.budget, 0);
-
-      // Prepare final data arrays
-      const categoryNames = [
-        ...top7.map(cat => cat.name),
-        ...(others.length > 0 ? ['Others'] : [])
-      ];
-
-      const expenses = [
-        ...top7.map(cat => cat.amount),
-        ...(others.length > 0 ? [othersTotal] : [])
-      ];
-
-      const budgets = [
-        ...top7.map(cat => cat.budget),
-        ...(others.length > 0 ? [othersBudget] : [])
-      ];
-
-      setMonthlyStats({
-        categoryNames,
-        expenses,
-        budgets
-      });
-    } catch (error) {
-      console.error('Error fetching monthly stats:', error);
-    }
-  };
-
-  const fetchTrendData = async () => {
-    if (!user) return;
-
-    try {
-      // Get last 6 months of data
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 5);
-
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString())
-        .order('date', { ascending: true });
-
-      if (error) throw error;
-
-      // Process data by month
-      const monthlyData: { [key: string]: { income: number; expenses: number } } = {};
-      
-      data.forEach(transaction => {
-        const date = new Date(transaction.date);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
-        if (!monthlyData[monthKey]) {
-          monthlyData[monthKey] = { income: 0, expenses: 0 };
-        }
-
-        if (transaction.type === 'income') {
-          monthlyData[monthKey].income += Number(transaction.amount);
-        } else {
-          monthlyData[monthKey].expenses += Number(transaction.amount);
-        }
-      });
-
-      const months = Object.keys(monthlyData).sort();
-      const monthLabels = months.map(month => {
-        const [year, monthNum] = month.split('-');
-        return new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('default', { month: 'short', year: '2-digit' });
-      });
-
-      setTrendData({
-        labels: monthLabels,
-        income: months.map(month => monthlyData[month].income),
-        expenses: months.map(month => monthlyData[month].expenses)
-      });
-    } catch (error) {
-      console.error('Error fetching trend data:', error);
     }
   };
 
@@ -405,101 +227,6 @@ export default function Dashboard() {
     );
   }
 
-  const categoryChartData = {
-    labels: monthlyStats.categoryNames,
-    datasets: [
-      {
-        label: 'Expenses',
-        data: monthlyStats.expenses,
-        backgroundColor: 'rgba(239, 68, 68, 0.5)',
-        borderColor: 'rgb(239, 68, 68)',
-        borderWidth: 1
-      },
-      {
-        label: 'Budget',
-        data: monthlyStats.budgets,
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 1
-      }
-    ]
-  };
-
-  const categoryChartOptions: ChartOptions<'bar'> = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Monthly Expenses vs Budget by Category'
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            const value = context.raw as number;
-            return `${context.dataset.label}: $${value.toLocaleString()}`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Amount ($)'
-        },
-        ticks: {
-          callback: (value) => `$${(value as number).toLocaleString()}`
-        }
-      }
-    }
-  };
-
-  const trendChartOptions: ChartOptions<'line'> = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Income vs Expenses Trend'
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Amount ($)'
-        }
-      }
-    }
-  };
-
-  const trendChartData = {
-    labels: trendData.labels,
-    datasets: [
-      {
-        label: 'Income',
-        data: trendData.income,
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.5)',
-        tension: 0.3
-      },
-      {
-        label: 'Expenses',
-        data: trendData.expenses,
-        borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.5)',
-        tension: 0.3
-      }
-    ]
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -553,6 +280,24 @@ export default function Dashboard() {
                   <Calculator size={18} />
                   <span>Manage Budgets</span>
                 </Link>
+                <button
+                  onClick={() => {
+                    setShowAccountSettings(true);
+                    setDropdownState(prev => ({ ...prev, isOpen: false }));
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Settings size={18} />
+                  <span>Account Settings</span>
+                </button>
+                <div className="border-t border-gray-100 my-2" />
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
               </div>
             )}
           </div>
@@ -619,15 +364,6 @@ export default function Dashboard() {
 
       <div className="mb-8">
         <QuickTransactionForm onSuccess={fetchData} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <Bar options={categoryChartOptions} data={categoryChartData} />
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <Line options={trendChartOptions} data={trendChartData} />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -704,6 +440,13 @@ export default function Dashboard() {
         onSubmit={handleAddTransaction}
         title="Add Transaction"
       />
+
+      {showAccountSettings && (
+        <AccountSettings
+          isOpen={showAccountSettings}
+          onClose={() => setShowAccountSettings(false)}
+        />
+      )}
     </div>
   );
 }

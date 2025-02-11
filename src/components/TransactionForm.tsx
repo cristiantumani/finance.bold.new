@@ -40,14 +40,12 @@ export default function TransactionForm({
   const [formData, setFormData] = useState(defaultFormData);
 
   useEffect(() => {
-    // Reset form when modal is opened/closed
     if (!isOpen) {
       setFormData(defaultFormData);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    // Only set form data if we have initialData (editing mode)
     if (initialData) {
       setFormData({
         type: initialData.type || defaultFormData.type,
@@ -83,7 +81,6 @@ export default function TransactionForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Find the selected category to get its expense_type
     const selectedCategory = categories.find(c => c.id === formData.category_id);
     
     await onSubmit({
@@ -92,7 +89,6 @@ export default function TransactionForm({
       category_id: formData.category_id,
       description: formData.description,
       date: formData.date,
-      // Only include expense_type for expenses and when we have a category
       expense_type: formData.type === 'expense' && selectedCategory 
         ? selectedCategory.expense_type 
         : undefined
@@ -101,7 +97,6 @@ export default function TransactionForm({
 
   if (!isOpen) return null;
 
-  // Filter categories based on transaction type
   const filteredCategories = categories.filter(category => 
     formData.type === 'income' ? category.income_category : !category.income_category
   );
@@ -133,7 +128,7 @@ export default function TransactionForm({
                   onChange={(e) => setFormData({
                     ...formData,
                     type: e.target.value as 'expense' | 'income',
-                    category_id: '' // Reset category when switching types
+                    category_id: ''
                   })}
                   className="mr-2"
                 />
@@ -148,7 +143,7 @@ export default function TransactionForm({
                   onChange={(e) => setFormData({
                     ...formData,
                     type: e.target.value as 'expense' | 'income',
-                    category_id: '' // Reset category when switching types
+                    category_id: ''
                   })}
                   className="mr-2"
                 />
@@ -207,17 +202,6 @@ export default function TransactionForm({
               placeholder="0.00"
             />
           </div>
-
-          {formData.type === 'expense' && formData.category_id && (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Expense Type</span>
-                <span className="text-sm text-gray-600 capitalize">
-                  {categories.find(c => c.id === formData.category_id)?.expense_type.replace('_', ' ')}
-                </span>
-              </div>
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

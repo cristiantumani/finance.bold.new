@@ -1,57 +1,71 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
+import Footer from './components/Footer';
+import Feedback from './components/Feedback';
 import Dashboard from './components/Dashboard';
 import Transactions from './pages/Transactions';
 import Categories from './pages/Categories';
 import ExpenseTypes from './pages/ExpenseTypes';
 import Budgets from './pages/Budgets';
 import TransactionUpload from './pages/TransactionUpload';
+import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import ProfileSetup from './pages/ProfileSetup';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/expense-types" element={<ExpenseTypes />} />
-          <Route path="/categories" element={
-            <AuthGuard>
-              <Categories />
-            </AuthGuard>
-          } />
-          <Route path="/budgets" element={
-            <AuthGuard>
-              <Budgets />
-            </AuthGuard>
-          } />
-          <Route path="/upload" element={
-            <AuthGuard>
-              <TransactionUpload />
-            </AuthGuard>
-          } />
-          <Route
-            path="/dashboard"
-            element={
+        <div className="min-h-screen pb-20">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/profile-setup" element={
               <AuthGuard>
-                <Dashboard />
+                <ProfileSetup />
               </AuthGuard>
-            }
-          />
-          <Route
-            path="/transactions"
-            element={
+            } />
+            <Route path="/expense-types" element={<ExpenseTypes />} />
+            <Route path="/categories" element={
               <AuthGuard>
-                <Transactions />
+                <Categories />
               </AuthGuard>
-            }
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+            } />
+            <Route path="/budgets" element={
+              <AuthGuard>
+                <Budgets />
+              </AuthGuard>
+            } />
+            <Route path="/upload" element={
+              <AuthGuard>
+                <TransactionUpload />
+              </AuthGuard>
+            } />
+            <Route
+              path="/dashboard"
+              element={
+                <AuthGuard>
+                  <Dashboard />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <AuthGuard>
+                  <Transactions />
+                </AuthGuard>
+              }
+            />
+            <Route path="/docs" element={<Documentation />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <Footer />
+          <Feedback />
+        </div>
       </AuthProvider>
     </Router>
   );

@@ -107,7 +107,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
               onChange={(e) => setFormData({
                 ...formData,
                 type: e.target.value as 'expense' | 'income',
-                category_id: '' // Reset category when switching types
+                category_id: ''
               })}
               className="mr-2"
             />
@@ -122,7 +122,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
               onChange={(e) => setFormData({
                 ...formData,
                 type: e.target.value as 'expense' | 'income',
-                category_id: '' // Reset category when switching types
+                category_id: ''
               })}
               className="mr-2"
             />
