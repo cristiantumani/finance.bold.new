@@ -14,6 +14,7 @@ import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import ProfileSetup from './pages/ProfileSetup';
+import BlogPost from './pages/BlogPost';
 
 function App() {
   return (
@@ -44,23 +45,18 @@ function App() {
                 <TransactionUpload />
               </AuthGuard>
             } />
-            <Route
-              path="/dashboard"
-              element={
-                <AuthGuard>
-                  <Dashboard />
-                </AuthGuard>
-              }
-            />
-            <Route
-              path="/transactions"
-              element={
-                <AuthGuard>
-                  <Transactions />
-                </AuthGuard>
-              }
-            />
+            <Route path="/dashboard" element={
+              <AuthGuard>
+                <Dashboard />
+              </AuthGuard>
+            } />
+            <Route path="/transactions" element={
+              <AuthGuard>
+                <Transactions />
+              </AuthGuard>
+            } />
             <Route path="/docs" element={<Documentation />} />
+            <Route path="/blogpost" element={<BlogPost />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
           <Footer />

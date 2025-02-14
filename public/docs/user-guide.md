@@ -6,15 +6,16 @@
 1. Sign up with email
 2. Complete profile
 3. Set privacy preferences
-4. Choose categories
+4. Choose categories, you can either choose the ones we present by default, or you can create your owns
+5. Define a budget per category, this is highly recomended so you can have control on your expenses
 
 ### 2. Dashboard Overview
-- Total balance
-- Monthly income
-- Monthly expenses
-- Savings rate
-- Recent transactions
-- Budget overview
+- Total balance - presents the remainng balance of the month in course
+- Monthly income - presents the total income of current month
+- Monthly expenses- presents monthly expenses of active month
+- Savings rate - it's how much you would be saving right now taking in consideration your Income vs expenses
+- Recent transactions - you will see the latest transactions, from here you can directly access to all transactions screen
+- Budget overview - will display each items of the budget and visually show how it compares to it's budget
 
 ### 3. Managing Transactions
 

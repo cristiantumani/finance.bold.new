@@ -22,6 +22,7 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('personal');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -47,23 +48,26 @@ export default function ProfileSetup() {
     if (!user) return;
 
     setLoading(true);
+    setError(null);
+    
     try {
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .insert([{
           user_id: user.id,
           first_name: formData.first_name,
           last_name: formData.last_name,
           location: formData.location || null,
-          app_goals: formData.app_goals
+          app_goal: formData.app_goals.join(', ')
         }]);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      // Redirect to dashboard after successful profile creation
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Error saving profile:', error);
+      // Navigate to dashboard after successful profile creation
+      navigate('/dashboard', { replace: true });
+    } catch (err: any) {
+      console.error('Error saving profile:', err);
+      setError(err.message || 'Failed to save profile');
     } finally {
       setLoading(false);
     }
@@ -105,6 +109,12 @@ export default function ProfileSetup() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          
           <div className="mb-8">
             <div className="relative">
               <div className="absolute top-2 flex w-full justify-between">
