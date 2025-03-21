@@ -8,6 +8,8 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,13 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
+      // First create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            email_confirmed: true // Bypass email confirmation
-          }
+          emailRedirectTo: `${window.location.origin}/verify`,
         }
       });
       
@@ -50,9 +51,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Wait a moment for the trigger to complete
+      // Create verification token using service role client
       if (data.user) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { error: tokenError } = await supabase.rpc('create_verification_token', {
+          p_user_id: data.user.id,
+          p_token: crypto.randomUUID(),
+          p_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        });
+
+        if (tokenError) throw tokenError;
       }
     } catch (error: any) {
       console.error('SignUp error:', error);
@@ -86,8 +93,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const verifyEmail = async (token: string) => {
+    try {
+      // Verify token using RPC function
+      const { error } = await supabase.rpc('verify_email', {
+        p_token: token
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Verification error:', error);
+      throw error;
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    try {
+      // Resend verification using RPC function
+      const { error } = await supabase.rpc('resend_verification', {
+        p_email: email
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signUp, 
+      signIn, 
+      signOut,
+      verifyEmail,
+      resendVerification
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   );

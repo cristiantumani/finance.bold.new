@@ -13,7 +13,14 @@ import {
   FolderOpen,
   Calculator,
   Upload,
-  LogOut
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  BarChart,
+  CircleDollarSign,
+  Banknote,
+  Receipt,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -47,23 +54,39 @@ type DropdownState = {
 };
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [dropdownState, setDropdownState] = useState<DropdownState>({
+    isOpen: false,
+    position: { top: 0, left: 0 }
+  });
   const [financialHealth, setFinancialHealth] = useState<FinancialHealth>({
     totalBalance: 0,
     monthlyIncome: 0,
     monthlyExpenses: 0,
     savingsRate: 0
   });
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showAccountSettings, setShowAccountSettings] = useState(false);
-  const [dropdownState, setDropdownState] = useState<DropdownState>({
-    isOpen: false,
-    position: { top: 0, left: 0 }
-  });
+
+  const getBudgetStatusColor = (spent: number, limit: number) => {
+    const percentage = (spent / limit) * 100;
+    if (percentage > 100) return 'bg-red-500';
+    if (percentage === 100) return 'bg-indigo-500';
+    return 'bg-emerald-500';
+  };
+
+  const getBudgetTextColor = (spent: number, limit: number) => {
+    const percentage = (spent / limit) * 100;
+    if (percentage > 100) return 'text-red-500';
+    if (percentage === 100) return 'text-indigo-500';
+    return 'text-emerald-500';
+  };
 
   const handleMoreOptionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,6 +111,18 @@ export default function Dashboard() {
     }
   };
 
+  const handlePreviousMonth = () => {
+    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownState.isOpen) {
@@ -106,7 +141,9 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      // Fetch transactions
+      const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select(`
@@ -116,12 +153,12 @@ export default function Dashboard() {
           )
         `)
         .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(5);
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0])
+        .order('date', { ascending: false });
 
       if (transactionsError) throw transactionsError;
 
-      // Fetch budgets
       const { data: budgetsData, error: budgetsError } = await supabase
         .from('budgets')
         .select(`
@@ -134,22 +171,11 @@ export default function Dashboard() {
 
       if (budgetsError) throw budgetsError;
 
-      // Calculate financial health
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('date', `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`);
-
-      if (monthlyError) throw monthlyError;
-
-      const monthlyIncome = monthlyData
+      const monthlyIncome = transactionsData
         ?.filter(t => t.type === 'income')
         .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
 
-      const monthlyExpenses = monthlyData
+      const monthlyExpenses = transactionsData
         ?.filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
 
@@ -176,7 +202,6 @@ export default function Dashboard() {
     if (!user) return;
     fetchData();
 
-    // Set up real-time subscriptions
     const transactionsSubscription = supabase
       .channel('transactions')
       .on('postgres_changes', 
@@ -197,7 +222,7 @@ export default function Dashboard() {
       transactionsSubscription.unsubscribe();
       budgetsSubscription.unsubscribe();
     };
-  }, [user]);
+  }, [user, selectedDate]);
 
   const handleAddTransaction = async (data: Omit<Transaction, 'id'>) => {
     if (!user) return;
@@ -230,18 +255,13 @@ export default function Dashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Financial Dashboard</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          Financial Dashboard
+        </h1>
         <div className="flex gap-4">
-          <Link 
-            to="/upload"
-            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-indigo-600"
-          >
-            <Upload size={20} />
-            Import Transactions
-          </Link>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <Plus size={20} />
             Add Transaction
@@ -249,7 +269,7 @@ export default function Dashboard() {
           <div className="relative">
             <button 
               onClick={handleMoreOptionsClick}
-              className="more-options-button flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+              className="more-options-button flex items-center gap-2 bg-dark-800 text-dark-100 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
             >
               <Settings size={20} />
               <span>More Options</span>
@@ -258,15 +278,23 @@ export default function Dashboard() {
             
             {dropdownState.isOpen && (
               <div 
-                className="more-options-dropdown fixed w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50"
+                className="more-options-dropdown fixed w-56 bg-dark-800 rounded-xl shadow-xl border border-dark-700 py-2 z-50 overflow-hidden"
                 style={{
                   top: `${dropdownState.position.top}px`,
                   left: `${dropdownState.position.left}px`
                 }}
               >
                 <Link 
+                  to="/upload"
+                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
+                >
+                  <Upload size={18} />
+                  <span>Import Transactions</span>
+                </Link>
+                <Link 
                   to="/categories"
-                  className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
                 >
                   <FolderOpen size={18} />
@@ -274,26 +302,34 @@ export default function Dashboard() {
                 </Link>
                 <Link 
                   to="/budgets"
-                  className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
                 >
                   <Calculator size={18} />
                   <span>Manage Budgets</span>
+                </Link>
+                <Link 
+                  to="/reports"
+                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
+                >
+                  <BarChart size={18} />
+                  <span>View Reports</span>
                 </Link>
                 <button
                   onClick={() => {
                     setShowAccountSettings(true);
                     setDropdownState(prev => ({ ...prev, isOpen: false }));
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
                 >
                   <Settings size={18} />
                   <span>Account Settings</span>
                 </button>
-                <div className="border-t border-gray-100 my-2" />
+                <div className="border-t border-dark-700 my-2" />
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-dark-700 transition-colors"
                 >
                   <LogOut size={18} />
                   <span>Sign Out</span>
@@ -305,56 +341,56 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
           <div className="flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Wallet className="text-blue-600" size={24} />
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-xl shadow-md">
+              <CircleDollarSign className="text-white" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Balance</p>
-              <p className="text-2xl font-bold text-gray-800">
+              <p className="text-sm font-medium text-dark-300">Total Balance</p>
+              <p className="text-2xl font-bold text-dark-50">
                 ${financialHealth.totalBalance.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
           <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <TrendingUp className="text-green-600" size={24} />
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-3 rounded-xl shadow-md">
+              <Banknote className="text-white" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Monthly Income</p>
-              <p className="text-2xl font-bold text-gray-800">
+              <p className="text-sm font-medium text-dark-300">Monthly Income</p>
+              <p className="text-2xl font-bold text-dark-50">
                 ${financialHealth.monthlyIncome.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
           <div className="flex items-center gap-4">
-            <div className="bg-red-100 p-3 rounded-lg">
-              <TrendingDown className="text-red-600" size={24} />
+            <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-3 rounded-xl shadow-md">
+              <Receipt className="text-white" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Monthly Expenses</p>
-              <p className="text-2xl font-bold text-gray-800">
+              <p className="text-sm font-medium text-dark-300">Monthly Expenses</p>
+              <p className="text-2xl font-bold text-dark-50">
                 ${financialHealth.monthlyExpenses.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
           <div className="flex items-center gap-4">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <PieChart className="text-purple-600" size={24} />
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-xl shadow-md">
+              <Percent className="text-white" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Savings Rate</p>
-              <p className="text-2xl font-bold text-gray-800">
+              <p className="text-sm font-medium text-dark-300">Savings Rate</p>
+              <p className="text-2xl font-bold text-dark-50">
                 {financialHealth.savingsRate}%
               </p>
             </div>
@@ -367,12 +403,12 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
+        <div className="lg:col-span-2 bg-dark-800/50 p-6 rounded-2xl shadow-lg border border-dark-700">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-dark-100">Recent Transactions</h2>
             <Link 
               to="/transactions" 
-              className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 text-sm"
+              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 text-sm font-medium"
             >
               View All
               <ArrowRight size={16} />
@@ -380,25 +416,33 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {transactions.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No transactions yet</p>
+              <p className="text-dark-400 text-center py-4">No transactions yet</p>
             ) : (
               transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
+                <div key={transaction.id} className="flex items-center justify-between p-4 hover:bg-dark-700/50 rounded-xl transition-all duration-200 group">
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${transaction.type === 'expense' ? 'bg-red-100' : 'bg-green-100'}`}>
-                      <DollarSign className={transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'} size={20} />
+                    <div className={`p-3 rounded-xl transition-all duration-200 ${
+                      transaction.type === 'expense' 
+                        ? 'bg-red-900/50 group-hover:bg-red-900/70' 
+                        : 'bg-emerald-900/50 group-hover:bg-emerald-900/70'
+                    }`}>
+                      <DollarSign className={
+                        transaction.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
+                      } size={20} />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800">{transaction.categories?.name || 'Uncategorized'}</p>
+                      <p className="font-medium text-dark-100">{transaction.categories?.name || 'Uncategorized'}</p>
                       {transaction.description && (
-                        <p className="text-sm text-gray-500">{transaction.description}</p>
+                        <p className="text-sm text-dark-400">{transaction.description}</p>
                       )}
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-dark-400">
                         {new Date(transaction.date).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <p className={`font-semibold ${transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                  <p className={`font-semibold ${
+                    transaction.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
+                  }`}>
                     {transaction.type === 'expense' ? '-' : '+'}${Number(transaction.amount).toLocaleString()}
                   </p>
                 </div>
@@ -407,28 +451,42 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Budget Overview</h2>
-          <div className="space-y-4">
+        <div className="bg-dark-800/50 p-6 rounded-2xl shadow-lg border border-dark-700">
+          <h2 className="text-lg font-semibold text-dark-100 mb-6">Budget Overview</h2>
+          <div className="space-y-6">
             {budgets.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No budgets set</p>
+              <p className="text-dark-400 text-center py-4">No budgets set</p>
             ) : (
-              budgets.map((budget) => (
-                <div key={budget.id} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{budget.categories?.name}</span>
-                    <span className="text-gray-800 font-medium">
-                      ${Number(budget.spent).toLocaleString()} / ${Number(budget.budget_limit).toLocaleString()}
-                    </span>
+              budgets.map((budget) => {
+                const percentage = (budget.spent / budget.budget_limit) * 100;
+                return (
+                  <div key={budget.id} className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-dark-200">{budget.categories?.name}</span>
+                      <span className={`font-medium ${getBudgetTextColor(budget.spent, budget.budget_limit)}`}>
+                        ${Number(budget.spent).toLocaleString()} / ${Number(budget.budget_limit).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${getBudgetStatusColor(budget.spent, budget.budget_limit)} rounded-full transition-all duration-300`}
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-dark-400">Remaining</span>
+                      <span className={`font-medium ${getBudgetTextColor(budget.spent, budget.budget_limit)}`}>
+                        ${Math.max(budget.budget_limit - budget.spent, 0).toLocaleString()}
+                        {percentage > 100 && (
+                          <span className="text-red-400 ml-1">
+                            (Over by ${(budget.spent - budget.budget_limit).toLocaleString()})
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-indigo-600 rounded-full"
-                      style={{ width: `${Math.min((budget.spent / budget.budget_limit) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

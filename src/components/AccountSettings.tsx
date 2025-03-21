@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Download, 
@@ -6,23 +6,88 @@ import {
   AlertTriangle,
   Shield,
   Settings,
-  X
+  X,
+  Users,
+  UserPlus,
+  UserMinus,
+  Edit2,
+  Clock,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { exportUserData, deleteUserData } from '../lib/dataRetention';
 import ConsentManager from './ConsentManager';
+import { 
+  sendCollaborationInvite, 
+  getCollaborators,
+  revokeCollaboratorAccess,
+  updateCollaboratorPermission
+} from '../lib/permissions';
+import { supabase } from '../lib/supabase';
 
 interface AccountSettingsProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type Collaborator = {
+  collaborator_id: string;
+  permission_level: 'full_access' | 'view_only';
+  users: {
+    email: string;
+  };
+};
+
+type PendingInvite = {
+  id: string;
+  email: string;
+  permission_level: 'full_access' | 'view_only';
+  created_at: string;
+};
+
 export default function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showConsentManager, setShowConsentManager] = useState(false);
+  const [showCollaboratorForm, setShowCollaboratorForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePermission, setInvitePermission] = useState<'full_access' | 'view_only'>('view_only');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      loadCollaborators();
+      loadPendingInvites();
+    }
+  }, [isOpen]);
+
+  const loadCollaborators = async () => {
+    try {
+      const data = await getCollaborators();
+      setCollaborators(data);
+    } catch (error) {
+      console.error('Error loading collaborators:', error);
+    }
+  };
+
+  const loadPendingInvites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('collaboration_invites')
+        .select('*')
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString());
+
+      if (error) throw error;
+      setPendingInvites(data);
+    } catch (error) {
+      console.error('Error loading pending invites:', error);
+    }
+  };
 
   const handleExportData = async () => {
     setLoading(true);
@@ -51,11 +116,69 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
     }
   };
 
+  const handleInviteCollaborator = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await sendCollaborationInvite(inviteEmail, invitePermission);
+      setShowCollaboratorForm(false);
+      setInviteEmail('');
+      setInvitePermission('view_only');
+      await loadPendingInvites();
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevokeAccess = async (collaboratorId: string) => {
+    if (!window.confirm('Are you sure you want to revoke this collaborator\'s access?')) {
+      return;
+    }
+
+    try {
+      await revokeCollaboratorAccess(collaboratorId);
+      await loadCollaborators();
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this invitation?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('collaboration_invites')
+        .delete()
+        .eq('id', inviteId);
+
+      if (error) throw error;
+      await loadPendingInvites();
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
+  const handleUpdatePermission = async (collaboratorId: string, newPermission: 'full_access' | 'view_only') => {
+    try {
+      await updateCollaboratorPermission(collaboratorId, newPermission);
+      await loadCollaborators();
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Account Settings</h2>
           <button 
@@ -67,6 +190,145 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
         </div>
 
         <div className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <Users size={20} className="text-indigo-600" />
+              Collaborators
+            </h3>
+            <div className="space-y-3">
+              {/* Active Collaborators */}
+              {collaborators.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <CheckCircle size={16} className="text-green-600" />
+                    Active Collaborators
+                  </h4>
+                  {collaborators.map((collaborator) => (
+                    <div 
+                      key={collaborator.collaborator_id}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{collaborator.users.email}</p>
+                        <p className="text-sm text-gray-500 capitalize">
+                          {collaborator.permission_level.replace('_', ' ')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={collaborator.permission_level}
+                          onChange={(e) => handleUpdatePermission(
+                            collaborator.collaborator_id,
+                            e.target.value as 'full_access' | 'view_only'
+                          )}
+                          className="text-sm border border-gray-300 rounded-md"
+                        >
+                          <option value="view_only">View Only</option>
+                          <option value="full_access">Full Access</option>
+                        </select>
+                        <button
+                          onClick={() => handleRevokeAccess(collaborator.collaborator_id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <UserMinus size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pending Invites */}
+              {pendingInvites.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Clock size={16} className="text-yellow-600" />
+                    Pending Invitations
+                  </h4>
+                  {pendingInvites.map((invite) => (
+                    <div 
+                      key={invite.id}
+                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{invite.email}</p>
+                        <p className="text-sm text-gray-500 capitalize">
+                          {invite.permission_level.replace('_', ' ')} (Invited)
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleCancelInvite(invite.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!showCollaboratorForm ? (
+                <button
+                  onClick={() => setShowCollaboratorForm(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                >
+                  <UserPlus size={18} />
+                  Invite Collaborator
+                </button>
+              ) : (
+                <form onSubmit={handleInviteCollaborator} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Permission Level
+                    </label>
+                    <select
+                      value={invitePermission}
+                      onChange={(e) => setInvitePermission(e.target.value as 'full_access' | 'view_only')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="view_only">View Only</option>
+                      <option value="full_access">Full Access</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCollaboratorForm(false)}
+                      className="px-3 py-1 text-gray-600 hover:text-gray-900"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {loading ? 'Sending...' : 'Send Invite'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+
           <div className="p-4 bg-gray-50 rounded-lg">
             <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
               <Shield size={20} className="text-indigo-600" />

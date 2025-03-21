@@ -9,10 +9,12 @@ import Transactions from './pages/Transactions';
 import Categories from './pages/Categories';
 import ExpenseTypes from './pages/ExpenseTypes';
 import Budgets from './pages/Budgets';
+import Reports from './pages/Reports';
 import TransactionUpload from './pages/TransactionUpload';
 import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import VerifyEmail from './pages/VerifyEmail';
 import ProfileSetup from './pages/ProfileSetup';
 import BlogPost from './pages/BlogPost';
 
@@ -24,6 +26,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/verify" element={<VerifyEmail />} />
             <Route path="/profile-setup" element={
               <AuthGuard>
                 <ProfileSetup />
@@ -38,6 +41,11 @@ function App() {
             <Route path="/budgets" element={
               <AuthGuard>
                 <Budgets />
+              </AuthGuard>
+            } />
+            <Route path="/reports" element={
+              <AuthGuard>
+                <Reports />
               </AuthGuard>
             } />
             <Route path="/upload" element={
@@ -67,4 +75,4 @@ function App() {
   );
 }
 
-export default App;
+export default App

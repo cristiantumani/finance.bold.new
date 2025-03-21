@@ -48,9 +48,9 @@ export default function Categories() {
   const [includeBudget, setIncludeBudget] = useState(false);
 
   const expenseTypeIcons = {
-    fixed: <Lock className="text-red-600" size={20} />,
-    variable: <Shuffle className="text-yellow-600" size={20} />,
-    controllable_fixed: <Sliders className="text-green-600" size={20} />
+    fixed: <Lock className="text-red-400" size={20} />,
+    variable: <Shuffle className="text-yellow-400" size={20} />,
+    controllable_fixed: <Sliders className="text-emerald-400" size={20} />
   };
 
   const expenseTypeLabels = {
@@ -178,18 +178,20 @@ export default function Categories() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <Link 
               to="/dashboard" 
-              className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 mb-2"
+              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
             >
               <ArrowLeft size={16} />
               Back to Dashboard
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              Categories
+            </h1>
           </div>
           <button 
             onClick={() => {
@@ -197,7 +199,7 @@ export default function Categories() {
               setFormData({ name: '', expense_type: 'fixed', income_category: false });
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <Plus size={20} />
             Add Category
@@ -208,22 +210,22 @@ export default function Categories() {
           {categories.map((category) => (
             <div 
               key={category.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+              className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700"
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                   {category.income_category ? (
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <DollarSign className="text-green-600" size={20} />
+                    <div className="p-2 bg-emerald-900/50 rounded-xl">
+                      <DollarSign className="text-emerald-400" size={20} />
                     </div>
                   ) : (
-                    <div className="p-2 bg-gray-100 rounded-lg">
+                    <div className="p-2 bg-dark-700/50 rounded-xl">
                       {expenseTypeIcons[category.expense_type]}
                     </div>
                   )}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{category.name}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-semibold text-dark-50">{category.name}</h3>
+                    <p className="text-sm text-dark-400">
                       {category.income_category ? 'Income' : expenseTypeLabels[category.expense_type]}
                     </p>
                   </div>
@@ -231,13 +233,13 @@ export default function Categories() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(category)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-dark-400 hover:text-dark-200 transition-colors"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(category.id)}
-                    className="text-gray-400 hover:text-red-600"
+                    className="text-red-400 hover:text-red-300 transition-colors"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -248,9 +250,9 @@ export default function Categories() {
 
           {categories.length === 0 && (
             <div className="lg:col-span-3 text-center py-12">
-              <Tag className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No categories</h3>
-              <p className="mt-1 text-gray-500">Get started by adding a new category.</p>
+              <Tag className="mx-auto h-12 w-12 text-dark-400" />
+              <h3 className="mt-2 text-lg font-medium text-dark-50">No categories</h3>
+              <p className="mt-1 text-dark-400">Get started by adding a new category.</p>
               <div className="mt-6">
                 <button
                   onClick={() => {
@@ -258,9 +260,9 @@ export default function Categories() {
                     setFormData({ name: '', expense_type: 'fixed', income_category: false });
                     setIsModalOpen(true);
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                  <Plus className="-ml-1 mr-2 h-5 w-5" />
                   Add Category
                 </button>
               </div>
@@ -270,10 +272,10 @@ export default function Categories() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-dark-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-dark-700">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-dark-50">
                 {editingCategory ? 'Edit Category' : 'Add Category'}
               </h2>
               <button 
@@ -283,14 +285,14 @@ export default function Categories() {
                   setFormData({ name: '', expense_type: 'fixed', income_category: false });
                   setIncludeBudget(false);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-dark-400 hover:text-dark-200 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-dark-200 mb-2">
                   Category Name
                 </label>
                 <input
@@ -298,13 +300,13 @@ export default function Categories() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
                   placeholder="Enter category name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-dark-200 mb-2">
                   Category Type
                 </label>
                 <div className="space-y-2">
@@ -316,23 +318,23 @@ export default function Categories() {
                         ...formData,
                         income_category: e.target.checked
                       })}
-                      className="mr-2"
+                      className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
                     />
-                    <span className="text-sm text-gray-700">Income Category</span>
+                    <span className="text-dark-100">Income Category</span>
                   </label>
                 </div>
               </div>
 
               {!formData.income_category && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-200 mb-2">
                     Expense Type
                   </label>
                   <div className="space-y-2">
                     {Object.entries(expenseTypeLabels).map(([value, label]) => (
                       <label 
                         key={value}
-                        className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="flex items-center p-3 border border-dark-600 rounded-xl hover:bg-dark-700/50 transition-colors cursor-pointer"
                       >
                         <input
                           type="radio"
@@ -343,11 +345,11 @@ export default function Categories() {
                             ...formData, 
                             expense_type: e.target.value as ExpenseType 
                           })}
-                          className="mr-3"
+                          className="mr-3 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
                         />
                         <div className="flex items-center gap-2">
                           {expenseTypeIcons[value as ExpenseType]}
-                          <span className="font-medium text-gray-900">{label}</span>
+                          <span className="font-medium text-dark-100">{label}</span>
                         </div>
                       </label>
                     ))}
@@ -356,7 +358,7 @@ export default function Categories() {
               )}
 
               {!editingCategory && !formData.income_category && (
-                <div className="border-t pt-4 mt-4">
+                <div className="border-t border-dark-600 pt-6">
                   <label className="flex items-center mb-4">
                     <input
                       type="checkbox"
@@ -372,9 +374,9 @@ export default function Categories() {
                           });
                         }
                       }}
-                      className="mr-2"
+                      className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-dark-200">
                       Set a budget for this category
                     </span>
                   </label>
@@ -382,7 +384,7 @@ export default function Categories() {
                   {includeBudget && (
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-dark-200 mb-2">
                           Budget Limit
                         </label>
                         <input
@@ -397,12 +399,12 @@ export default function Categories() {
                               limit: e.target.value
                             }
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
                           placeholder="0.00"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-dark-200 mb-2">
                           Budget Period
                         </label>
                         <select
@@ -415,7 +417,7 @@ export default function Categories() {
                               period: e.target.value as 'monthly' | 'weekly' | 'yearly'
                             }
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
                         >
                           <option value="monthly">Monthly</option>
                           <option value="weekly">Weekly</option>
@@ -427,7 +429,7 @@ export default function Categories() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -436,13 +438,13 @@ export default function Categories() {
                     setFormData({ name: '', expense_type: 'fixed', income_category: false });
                     setIncludeBudget(false);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                  className="px-4 py-2 text-sm font-medium text-dark-200 hover:text-dark-100 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200"
                 >
                   {editingCategory ? 'Update' : 'Add'} Category
                 </button>

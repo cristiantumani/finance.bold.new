@@ -40,6 +40,9 @@ export default function Login() {
             create a new account
           </Link>
         </p>
+        <p className="mt-2 text-center text-sl text-gray-600">
+          It's 100% free. No credit card required
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

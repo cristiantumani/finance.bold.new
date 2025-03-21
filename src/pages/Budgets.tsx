@@ -11,7 +11,11 @@ import {
   AlertTriangle,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CircleDollarSign,
+  Wallet,
+  Receipt,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -49,7 +53,7 @@ export default function Budgets() {
   const navigate = useNavigate();
   const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary>({
@@ -166,7 +170,7 @@ export default function Budgets() {
 
       if (error) throw error;
 
-      setIsAddModalOpen(false);
+      setIsModalOpen(false);
       fetchBudgets();
     } catch (error) {
       console.error('Error adding budget:', error);
@@ -262,9 +266,9 @@ export default function Budgets() {
           budgetSummary.spentTypeBreakdown.controllable_fixed
         ],
         backgroundColor: [
-          'rgba(239, 68, 68, 0.5)',  // Red for fixed
-          'rgba(245, 158, 11, 0.5)',  // Yellow for variable
-          'rgba(16, 185, 129, 0.5)'   // Green for controllable
+          'rgba(239, 68, 68, 0.5)',
+          'rgba(245, 158, 11, 0.5)',
+          'rgba(16, 185, 129, 0.5)'
         ],
         borderColor: [
           'rgb(239, 68, 68)',
@@ -280,7 +284,10 @@ export default function Budgets() {
     responsive: true,
     plugins: {
       legend: {
-        position: 'bottom' as const
+        position: 'bottom' as const,
+        labels: {
+          color: '#94a3b8' // text-dark-400
+        }
       },
       tooltip: {
         callbacks: {
@@ -304,275 +311,222 @@ export default function Budgets() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <Link 
               to="/dashboard" 
-              className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 mb-2"
+              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
             >
               <ArrowLeft size={16} />
               Back to Dashboard
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Budget Management</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              Budget Management
+            </h1>
           </div>
           <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <Plus size={20} />
             Add Budget
           </button>
         </div>
 
-        <div className="flex justify-center items-center gap-4 mb-8">
-          <button
-            onClick={handlePreviousMonth}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="text-xl font-semibold text-gray-800 min-w-[200px] text-center">
-            {formatMonthYear(selectedDate)}
-          </h2>
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            disabled={selectedDate >= new Date()}
-          >
-            <ChevronRight size={20} className={selectedDate >= new Date() ? 'text-gray-300' : ''} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Budget Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-1">
-                  <DollarSign className="text-indigo-600" size={20} />
-                  <span className="text-sm text-gray-600">Total Budget</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-xl shadow-md">
+                <CircleDollarSign className="text-white" size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-dark-300">Total Budget</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${budgetSummary.totalBudget.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-1">
-                  <TrendingUp className="text-green-600" size={20} />
-                  <span className="text-sm text-gray-600">Total Spent</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
+            </div>
+          </div>
+
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-3 rounded-xl shadow-md">
+                <Wallet className="text-white" size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-dark-300">Total Spent</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${budgetSummary.totalSpent.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-1">
-                  <AlertTriangle className="text-yellow-600" size={20} />
-                  <span className="text-sm text-gray-600">Remaining</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
+            </div>
+          </div>
+
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-3 rounded-xl shadow-md">
+                <Receipt className="text-white" size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-dark-300">Remaining</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${(budgetSummary.totalBudget - budgetSummary.totalSpent).toLocaleString()}
                 </p>
               </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="text-base font-medium text-gray-700">Actual Spending Distribution</h3>
-              <div className="h-[300px] flex items-center justify-center">
-                <Pie data={spentPieChartData} options={pieChartOptions} />
-              </div>
-              <p className="text-sm text-gray-500 text-center">
-                Distribution of actual expenses by expense type for {formatMonthYear(selectedDate)}
-              </p>
-            </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Budget Flexibility</h2>
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-base font-medium text-gray-700">Budget Allocation</h3>
-                <div className="h-[200px] flex items-center justify-center">
-                  <Pie data={budgetPieChartData} options={pieChartOptions} />
-                </div>
-                <p className="text-sm text-gray-500 text-center">
-                  How your budget is allocated across different expense types
-                </p>
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-xl shadow-md">
+                <Percent className="text-white" size={24} />
               </div>
-
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Fixed Expenses</span>
-                    <span className="font-medium text-red-600">
-                      ${budgetSummary.expenseTypeBreakdown.fixed.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full">
-                    <div 
-                      className="h-full bg-red-500 rounded-full"
-                      style={{ 
-                        width: `${(budgetSummary.expenseTypeBreakdown.fixed / budgetSummary.totalBudget) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Essential expenses that are difficult to change
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Variable Expenses</span>
-                    <span className="font-medium text-yellow-600">
-                      ${budgetSummary.expenseTypeBreakdown.variable.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full">
-                    <div 
-                      className="h-full bg-yellow-500 rounded-full"
-                      style={{ 
-                        width: `${(budgetSummary.expenseTypeBreakdown.variable / budgetSummary.totalBudget) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Expenses that vary month to month
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Controllable Fixed</span>
-                    <span className="font-medium text-green-600">
-                      ${budgetSummary.expenseTypeBreakdown.controllable_fixed.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full">
-                    <div 
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ 
-                        width: `${(budgetSummary.expenseTypeBreakdown.controllable_fixed / budgetSummary.totalBudget) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Fixed expenses you can optimize
-                  </p>
-                </div>
+              <div>
+                <p className="text-sm font-medium text-dark-300">Budget Used</p>
+                <p className="text-2xl font-bold text-dark-50">
+                  {budgetSummary.totalBudget > 0
+                    ? `${((budgetSummary.totalSpent / budgetSummary.totalBudget) * 100).toFixed(1)}%`
+                    : '0%'}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {budgets.map((budget) => {
-            const percentage = (budget.spent / budget.budget_limit) * 100;
-            const isOverBudget = percentage > 100;
-
-            return (
-              <div 
-                key={budget.id} 
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {budget.categories?.name || 'Unknown Category'}
-                    </h3>
-                    <p className="text-sm text-gray-500 capitalize">{budget.period}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleViewTransactions(budget.category_id, budget.categories?.name || 'Unknown')}
-                      className="text-gray-400 hover:text-indigo-600 transition-colors"
-                      title="View transactions"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      onClick={() => setEditingBudget(budget)}
-                      className="text-gray-400 hover:text-gray-600"
-                      title="Edit budget"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBudget(budget.id)}
-                      className="text-gray-400 hover:text-red-600"
-                      title="Delete budget"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Spent</span>
-                    <span className={`font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`}>
-                      ${budget.spent.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Budget</span>
-                    <span className="font-medium text-gray-900">
-                      ${budget.budget_limit.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all ${
-                        isOverBudget ? 'bg-red-600' : 'bg-green-600'
-                      }`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Remaining</span>
-                    <span className={`font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-                      ${Math.max(budget.budget_limit - budget.spent, 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {budgets.length === 0 && (
-            <div className="lg:col-span-3 text-center py-12">
-              <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No budgets set</h3>
-              <p className="mt-1 text-gray-500">Get started by adding a new budget.</p>
-              <div className="mt-6">
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                  Add Budget
-                </button>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <h2 className="text-lg font-semibold text-dark-50 mb-6">Budget Distribution</h2>
+            <div className="h-[400px] flex items-center justify-center">
+              <Pie data={budgetPieChartData} options={pieChartOptions} />
             </div>
-          )}
+          </div>
+
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <h2 className="text-lg font-semibold text-dark-50 mb-6">Actual Spending Distribution</h2>
+            <div className="h-[400px] flex items-center justify-center">
+              <Pie data={spentPieChartData} options={pieChartOptions} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-dark-800/50 backdrop-blur-xl rounded-2xl shadow-lg border border-dark-700 overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold text-dark-50 mb-4">Budget Details</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-dark-800/80">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Budget Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Spent
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Remaining
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Progress
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-dark-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-700">
+                {budgets.map((budget) => {
+                  const percentage = (budget.spent / budget.budget_limit) * 100;
+                  return (
+                    <tr key={budget.id} className="hover:bg-dark-700/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="text-dark-100 font-medium">
+                          {budget.categories?.name || 'Uncategorized'}
+                        </div>
+                        <div className="text-sm text-dark-400">
+                          {budget.categories?.expense_type.replace('_', ' ').charAt(0).toUpperCase() +
+                            budget.categories?.expense_type.slice(1).replace('_', ' ') || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-dark-100">
+                        ${budget.budget_limit.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-dark-100">
+                        ${budget.spent.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={percentage > 100 ? 'text-red-400' : 'text-emerald-400'}>
+                          ${Math.abs(budget.budget_limit - budget.spent).toLocaleString()}
+                          {percentage > 100 && ' over'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="w-full bg-dark-700 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              percentage > 100
+                                ? 'bg-red-500'
+                                : percentage > 80
+                                ? 'bg-yellow-500'
+                                : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                          />
+                        </div>
+                        <div className="mt-1 text-sm text-dark-400">
+                          {percentage.toFixed(1)}%
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-3">
+                        <button
+                          onClick={() => handleViewTransactions(budget.category_id, budget.categories?.name || 'Unknown')}
+                          className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={() => setEditingBudget(budget)}
+                          className="text-dark-300 hover:text-dark-100 transition-colors"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBudget(budget.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {budgets.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-dark-400">
+                      No budgets found. Click "Add Budget" to create your first budget.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <BudgetForm
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={handleAddBudget}
-        title="Add Budget"
-      />
-
-      <BudgetForm
-        isOpen={!!editingBudget}
-        onClose={() => setEditingBudget(null)}
-        onSubmit={handleUpdateBudget}
-        initialData={editingBudget || undefined}
-        title="Edit Budget"
-      />
+      {isModalOpen && (
+        <BudgetForm
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={editingBudget ? handleUpdateBudget : handleAddBudget}
+          initialData={editingBudget || undefined}
+          title={editingBudget ? 'Edit Budget' : 'Add Budget'}
+        />
+      )}
     </div>
   );
 }

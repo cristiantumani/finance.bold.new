@@ -7,16 +7,24 @@ const corsHeaders = {
 }
 
 interface NotificationPayload {
-  feedback_id: string
-  user_id: string
-  user_email: string
-  type: string
-  satisfaction: string
-  message: string
-  url: string
-  user_agent: string
-  created_at: string
-  notification_email: string
+  // Feedback notification payload
+  feedback_id?: string
+  user_id?: string
+  user_email?: string
+  type?: string
+  satisfaction?: string
+  message?: string
+  url?: string
+  user_agent?: string
+  created_at?: string
+  notification_email?: string
+
+  // Collaboration invite payload
+  invite_id?: string
+  email?: string
+  token?: string
+  permission_level?: string
+  expires_at?: string
 }
 
 serve(async (req) => {
@@ -35,7 +43,7 @@ serve(async (req) => {
       .from('notification_queue')
       .select('*')
       .eq('processed', false)
-      .eq('type', 'feedback_notification')
+      .in('type', ['feedback_notification', 'collaboration_invite'])
       .order('created_at', { ascending: true })
       .limit(10)
 
@@ -56,6 +64,57 @@ serve(async (req) => {
       const payload = notification.payload as NotificationPayload
 
       try {
+        let emailContent: { subject: string; html: string }
+
+        // Generate email content based on notification type
+        if (notification.type === 'feedback_notification') {
+          emailContent = {
+            subject: `New Feedback Received: ${payload.type?.charAt(0).toUpperCase()}${payload.type?.slice(1)}`,
+            html: `
+              <h2>New Feedback Received</h2>
+              <p><strong>Type:</strong> ${payload.type?.charAt(0).toUpperCase()}${payload.type?.slice(1)}</p>
+              <p><strong>Satisfaction:</strong> ${payload.satisfaction}</p>
+              <p><strong>Message:</strong> ${payload.message}</p>
+              <p><strong>URL:</strong> ${payload.url}</p>
+              <p><strong>User Email:</strong> ${payload.user_email}</p>
+              <p><strong>User Agent:</strong> ${payload.user_agent}</p>
+              <p><strong>Submitted At:</strong> ${new Date(payload.created_at || '').toLocaleString()}</p>
+            `
+          }
+        } else if (notification.type === 'collaboration_invite') {
+          const verifyUrl = `${Deno.env.get('PUBLIC_SITE_URL')}/verify-invite?token=${payload.token}`
+          emailContent = {
+            subject: 'Invitation to Collaborate',
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4F46E5; margin-bottom: 24px;">You've Been Invited to Collaborate</h2>
+                
+                <p style="color: #374151; margin-bottom: 16px;">
+                  You've been invited to collaborate with access level: 
+                  <strong>${payload.permission_level === 'full_access' ? 'Full Access' : 'View Only'}</strong>
+                </p>
+                
+                <p style="color: #374151; margin-bottom: 24px;">
+                  This invitation will expire on ${new Date(payload.expires_at || '').toLocaleString()}
+                </p>
+                
+                <a href="${verifyUrl}" 
+                   style="display: inline-block; background-color: #4F46E5; color: white; 
+                          padding: 12px 24px; text-decoration: none; border-radius: 6px;
+                          margin-bottom: 24px;">
+                  Accept Invitation
+                </a>
+                
+                <p style="color: #6B7280; font-size: 14px;">
+                  If you don't want to accept this invitation, you can ignore this email.
+                </p>
+              </div>
+            `
+          }
+        } else {
+          throw new Error(`Unknown notification type: ${notification.type}`)
+        }
+
         // Send email using Resend
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -65,18 +124,11 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             from: 'Financial App <notifications@yourdomain.com>',
-            to: payload.notification_email,
-            subject: `New Feedback Received: ${payload.type.charAt(0).toUpperCase() + payload.type.slice(1)}`,
-            html: `
-              <h2>New Feedback Received</h2>
-              <p><strong>Type:</strong> ${payload.type.charAt(0).toUpperCase() + payload.type.slice(1)}</p>
-              <p><strong>Satisfaction:</strong> ${payload.satisfaction}</p>
-              <p><strong>Message:</strong> ${payload.message}</p>
-              <p><strong>URL:</strong> ${payload.url}</p>
-              <p><strong>User Email:</strong> ${payload.user_email}</p>
-              <p><strong>User Agent:</strong> ${payload.user_agent}</p>
-              <p><strong>Submitted At:</strong> ${new Date(payload.created_at).toLocaleString()}</p>
-            `,
+            to: notification.type === 'feedback_notification' 
+              ? payload.notification_email 
+              : payload.email,
+            subject: emailContent.subject,
+            html: emailContent.html
           }),
         })
 

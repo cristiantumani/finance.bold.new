@@ -71,7 +71,6 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
 
       if (error) throw error;
 
-      // Reset form
       setFormData({
         type: 'expense',
         category_id: '',
@@ -88,15 +87,14 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
     }
   };
 
-  // Filter categories based on transaction type
   const filteredCategories = categories.filter(category => 
     formData.type === 'income' ? category.income_category : !category.income_category
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Add Transaction</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="bg-dark-800/50 backdrop-blur-xl rounded-2xl shadow-lg border border-dark-700 p-6">
+      <h2 className="text-lg font-semibold text-dark-50 mb-6">Quick Add Transaction</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex gap-4">
           <label className="flex items-center">
             <input
@@ -109,9 +107,9 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 type: e.target.value as 'expense' | 'income',
                 category_id: ''
               })}
-              className="mr-2"
+              className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
             />
-            Expense
+            <span className="text-dark-100">Expense</span>
           </label>
           <label className="flex items-center">
             <input
@@ -124,15 +122,15 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 type: e.target.value as 'expense' | 'income',
                 category_id: ''
               })}
-              className="mr-2"
+              className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
             />
-            Income
+            <span className="text-dark-100">Income</span>
           </label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Category
             </label>
             <select
@@ -142,7 +140,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 ...formData,
                 category_id: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
             >
               <option value="">Select a category</option>
               {filteredCategories.map(category => (
@@ -154,7 +152,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Amount
             </label>
             <input
@@ -166,13 +164,13 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 ...formData,
                 amount: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
               placeholder="0.00"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Description
             </label>
             <input
@@ -182,13 +180,13 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 ...formData,
                 description: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
               placeholder="Enter description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Date
             </label>
             <input
@@ -199,7 +197,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 ...formData,
                 date: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
             />
           </div>
         </div>
@@ -208,7 +206,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50"
           >
             {loading ? 'Adding...' : 'Add Transaction'}
           </button>

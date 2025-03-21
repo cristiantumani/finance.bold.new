@@ -102,20 +102,20 @@ export default function TransactionForm({
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-dark-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-dark-700">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-dark-50">{title}</h2>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-dark-400 hover:text-dark-200 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Type
             </label>
             <div className="flex gap-4">
@@ -130,9 +130,9 @@ export default function TransactionForm({
                     type: e.target.value as 'expense' | 'income',
                     category_id: ''
                   })}
-                  className="mr-2"
+                  className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
                 />
-                Expense
+                <span className="text-dark-100">Expense</span>
               </label>
               <label className="flex items-center">
                 <input
@@ -145,22 +145,22 @@ export default function TransactionForm({
                     type: e.target.value as 'expense' | 'income',
                     category_id: ''
                   })}
-                  className="mr-2"
+                  className="mr-2 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-dark-800"
                 />
-                Income
+                <span className="text-dark-100">Income</span>
               </label>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-dark-200">
                 Category
               </label>
               {formData.type === 'expense' && (
                 <Link 
                   to="/categories"
-                  className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1"
+                  className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1"
                 >
                   Manage Categories
                   <HelpCircle size={14} />
@@ -174,7 +174,7 @@ export default function TransactionForm({
                 ...formData,
                 category_id: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
             >
               <option value="">Select a category</option>
               {filteredCategories.map(category => (
@@ -186,7 +186,7 @@ export default function TransactionForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Amount
             </label>
             <input
@@ -198,13 +198,13 @@ export default function TransactionForm({
                 ...formData,
                 amount: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
               placeholder="0.00"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Description
             </label>
             <input
@@ -214,13 +214,13 @@ export default function TransactionForm({
                 ...formData,
                 description: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
               placeholder="Enter description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Date
             </label>
             <input
@@ -231,7 +231,7 @@ export default function TransactionForm({
                 ...formData,
                 date: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
             />
           </div>
 
@@ -239,13 +239,13 @@ export default function TransactionForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+              className="px-4 py-2 text-sm font-medium text-dark-200 hover:text-dark-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200"
             >
               {initialData ? 'Update' : 'Add'} Transaction
             </button>
