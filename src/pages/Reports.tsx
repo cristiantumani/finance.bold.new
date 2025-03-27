@@ -94,7 +94,29 @@ export default function Reports() {
         }, {});
 
         // Sort categories by total amount spent (descending)
-        const sortedCategories = Object.values(categoryTotals).sort((a, b) => b.total_amount - a.total_amount);
+        let sortedCategories = Object.values(categoryTotals).sort((a, b) => b.total_amount - a.total_amount);
+
+        // Calculate total spending
+        const totalSpending = sortedCategories.reduce((sum, cat) => sum + cat.total_amount, 0);
+
+        // Take top 20 categories and group the rest into "Other expenses"
+        if (sortedCategories.length > 20) {
+          const top20 = sortedCategories.slice(0, 20);
+          const otherExpenses = sortedCategories.slice(20).reduce(
+            (sum, cat) => sum + cat.total_amount,
+            0
+          );
+
+          sortedCategories = [
+            ...top20,
+            {
+              category_name: 'Other expenses',
+              total_amount: otherExpenses,
+              expense_type: null
+            }
+          ];
+        }
+
         setCategorySpending(sortedCategories);
 
         // Calculate expense type distribution
@@ -210,7 +232,12 @@ export default function Reports() {
     labels: categorySpending.map(c => c.category_name),
     datasets: [{
       data: categorySpending.map(c => c.total_amount),
-      backgroundColor: categorySpending.map(() => `hsla(${Math.random() * 360}, 70%, 50%, 0.5)`),
+      backgroundColor: categorySpending.map((_, index) => {
+        if (index === categorySpending.length - 1 && categorySpending[index].category_name === 'Other expenses') {
+          return 'rgba(156, 163, 175, 0.5)'; // Gray for "Other expenses"
+        }
+        return `hsla(${Math.random() * 360}, 70%, 50%, 0.5)`;
+      }),
       borderWidth: 1
     }]
   };
@@ -384,7 +411,7 @@ export default function Reports() {
 
         <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
           <h2 className="text-lg font-semibold text-dark-50 mb-6">Category Breakdown</h2>
-          <div className="h-[400px]">
+          <div className="h-[800px]">
             <Bar
               data={categoryChartData}
               options={{
@@ -399,11 +426,42 @@ export default function Reports() {
                     callbacks: {
                       label: (context) => {
                         const value = context.raw as number;
-                        return `$${value.toLocaleString()}`;
+                        const total = categorySpending.reduce((sum, cat) => sum + cat.total_amount, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `$${value.toLocaleString()} (${percentage}%)`;
                       }
                     }
                   }
-                }
+                },
+                scales: {
+                  y: {
+                    ticks: {
+                      padding: 10,
+                      font: {
+                        size: 12
+                      },
+                      color: '#94a3b8'
+                    },
+                    grid: {
+                      color: '#1e293b'
+                    }
+                  },
+                  x: {
+                    grid: {
+                      color: '#1e293b'
+                    },
+                    ticks: {
+                      color: '#94a3b8'
+                    }
+                  }
+                },
+                layout: {
+                  padding: {
+                    left: 20,
+                    right: 20
+                  }
+                },
+                maintainAspectRatio: false
               }}
             />
           </div>

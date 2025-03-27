@@ -116,24 +116,26 @@ serve(async (req) => {
         }
 
         // Send email using Resend
-        const response = await fetch('https://api.resend.com/emails', {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'Financial App <notifications@yourdomain.com>',
+            from: 'Opsia Finance <notifications@opsia.app>',
             to: notification.type === 'feedback_notification' 
               ? payload.notification_email 
               : payload.email,
             subject: emailContent.subject,
             html: emailContent.html
-          }),
+          })
         })
 
-        if (!response.ok) {
-          throw new Error(`Failed to send email: ${await response.text()}`)
+        if (!resendResponse.ok) {
+          const errorText = await resendResponse.text()
+          console.error('Resend API error:', errorText)
+          throw new Error(`Failed to send email: ${errorText}`)
         }
 
         // Mark notification as processed
@@ -141,17 +143,23 @@ serve(async (req) => {
           .from('notification_queue')
           .update({
             processed: true,
-            processed_at: new Date().toISOString(),
+            processed_at: new Date().toISOString()
           })
           .eq('id', notification.id)
 
         if (updateError) throw updateError
+
+        console.log(`Successfully processed notification ${notification.id}`)
       } catch (error) {
+        console.error('Error processing notification:', error)
+        
         // Mark notification as failed
         await supabaseClient
           .from('notification_queue')
           .update({
             error: error.message,
+            processed: true, // Mark as processed to prevent infinite retries
+            processed_at: new Date().toISOString()
           })
           .eq('id', notification.id)
       }
@@ -161,15 +169,16 @@ serve(async (req) => {
       JSON.stringify({ message: 'Notifications processed successfully' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 200
       }
     )
   } catch (error) {
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 500
       }
     )
   }

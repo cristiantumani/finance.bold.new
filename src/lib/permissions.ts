@@ -84,19 +84,30 @@ export async function getCollaborators() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
-    const { data, error } = await supabase
+    // First get the collaborator IDs and permission levels
+    const { data: permissions, error: permissionsError } = await supabase
       .from('account_permissions')
-      .select(`
-        collaborator_id,
-        permission_level,
-        users:collaborator_id (
-          email
-        )
-      `)
+      .select('collaborator_id, permission_level')
       .eq('account_owner_id', user.id);
 
-    if (error) throw error;
-    return data;
+    if (permissionsError) throw permissionsError;
+
+    if (!permissions || permissions.length === 0) {
+      return [];
+    }
+
+    // Then get the user emails for those collaborators
+    const { data: users, error: usersError } = await supabase
+      .auth.admin.listUsers();
+
+    if (usersError) throw usersError;
+
+    // Combine the data
+    return permissions.map(permission => ({
+      collaborator_id: permission.collaborator_id,
+      permission_level: permission.permission_level,
+      users: users.users.find(u => u.id === permission.collaborator_id)
+    }));
   } catch (error) {
     console.error('Error getting collaborators:', error);
     throw error;

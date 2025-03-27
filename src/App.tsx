@@ -5,6 +5,7 @@ import AuthGuard from './components/AuthGuard';
 import Footer from './components/Footer';
 import Feedback from './components/Feedback';
 import Dashboard from './components/Dashboard';
+import Landing from './pages/Landing';
 import Transactions from './pages/Transactions';
 import Categories from './pages/Categories';
 import ExpenseTypes from './pages/ExpenseTypes';
@@ -24,6 +25,7 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen pb-20">
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/verify" element={<VerifyEmail />} />
@@ -65,7 +67,6 @@ function App() {
             } />
             <Route path="/docs" element={<Documentation />} />
             <Route path="/blogpost" element={<BlogPost />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
           <Footer />
           <Feedback />
@@ -75,4 +76,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

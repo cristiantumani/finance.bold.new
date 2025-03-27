@@ -178,12 +178,12 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+      <div className="bg-dark-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Account Settings</h2>
+          <h2 className="text-xl font-semibold text-dark-50">Account Settings</h2>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-dark-400 hover:text-dark-200"
           >
             <X size={20} />
           </button>
@@ -191,32 +191,32 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
 
         <div className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
 
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-              <Users size={20} className="text-indigo-600" />
+          <div className="p-4 bg-dark-900/50 rounded-lg">
+            <h3 className="font-medium text-dark-50 mb-2 flex items-center gap-2">
+              <Users size={20} className="text-indigo-400" />
               Collaborators
             </h3>
             <div className="space-y-3">
               {/* Active Collaborators */}
               {collaborators.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <CheckCircle size={16} className="text-green-600" />
+                  <h4 className="text-sm font-medium text-dark-200 flex items-center gap-2">
+                    <CheckCircle size={16} className="text-green-400" />
                     Active Collaborators
                   </h4>
                   {collaborators.map((collaborator) => (
                     <div 
                       key={collaborator.collaborator_id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                      className="flex items-center justify-between p-3 bg-dark-800/50 rounded-lg border border-dark-700"
                     >
                       <div>
-                        <p className="font-medium text-gray-900">{collaborator.users.email}</p>
-                        <p className="text-sm text-gray-500 capitalize">
+                        <p className="font-medium text-dark-100">{collaborator.users.email}</p>
+                        <p className="text-sm text-dark-400 capitalize">
                           {collaborator.permission_level.replace('_', ' ')}
                         </p>
                       </div>
@@ -227,14 +227,14 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
                             collaborator.collaborator_id,
                             e.target.value as 'full_access' | 'view_only'
                           )}
-                          className="text-sm border border-gray-300 rounded-md"
+                          className="text-sm bg-dark-900 border border-dark-700 rounded-md text-dark-100"
                         >
                           <option value="view_only">View Only</option>
                           <option value="full_access">Full Access</option>
                         </select>
                         <button
                           onClick={() => handleRevokeAccess(collaborator.collaborator_id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-400 hover:text-red-300"
                         >
                           <UserMinus size={18} />
                         </button>
@@ -247,24 +247,24 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
               {/* Pending Invites */}
               {pendingInvites.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Clock size={16} className="text-yellow-600" />
+                  <h4 className="text-sm font-medium text-dark-200 flex items-center gap-2">
+                    <Clock size={16} className="text-yellow-400" />
                     Pending Invitations
                   </h4>
                   {pendingInvites.map((invite) => (
                     <div 
                       key={invite.id}
-                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"
+                      className="flex items-center justify-between p-3 bg-yellow-900/20 rounded-lg border border-yellow-900/30"
                     >
                       <div>
-                        <p className="font-medium text-gray-900">{invite.email}</p>
-                        <p className="text-sm text-gray-500 capitalize">
+                        <p className="font-medium text-dark-100">{invite.email}</p>
+                        <p className="text-sm text-dark-400 capitalize">
                           {invite.permission_level.replace('_', ' ')} (Invited)
                         </p>
                       </div>
                       <button
                         onClick={() => handleCancelInvite(invite.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-400 hover:text-red-300"
                       >
                         <X size={18} />
                       </button>
@@ -276,7 +276,7 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
               {!showCollaboratorForm ? (
                 <button
                   onClick={() => setShowCollaboratorForm(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-indigo-400 hover:bg-dark-700 rounded-md transition-colors"
                 >
                   <UserPlus size={18} />
                   Invite Collaborator
@@ -284,7 +284,7 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
               ) : (
                 <form onSubmit={handleInviteCollaborator} className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-dark-200 mb-1">
                       Email Address
                     </label>
                     <input
@@ -292,17 +292,18 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
                       required
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-dark-100 placeholder-dark-400"
+                      placeholder="Enter email address"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-dark-200 mb-1">
                       Permission Level
                     </label>
                     <select
                       value={invitePermission}
                       onChange={(e) => setInvitePermission(e.target.value as 'full_access' | 'view_only')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-dark-100"
                     >
                       <option value="view_only">View Only</option>
                       <option value="full_access">Full Access</option>
@@ -312,7 +313,7 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
                     <button
                       type="button"
                       onClick={() => setShowCollaboratorForm(false)}
-                      className="px-3 py-1 text-gray-600 hover:text-gray-900"
+                      className="px-3 py-1 text-dark-300 hover:text-dark-100"
                     >
                       Cancel
                     </button>
@@ -329,22 +330,22 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
             </div>
           </div>
 
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-              <Shield size={20} className="text-indigo-600" />
+          <div className="p-4 bg-dark-900/50 rounded-lg">
+            <h3 className="font-medium text-dark-50 mb-2 flex items-center gap-2">
+              <Shield size={20} className="text-indigo-400" />
               Privacy & Data
             </h3>
             <div className="space-y-3">
               <button
                 onClick={() => setShowConsentManager(true)}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                className="w-full text-left px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 rounded-md transition-colors"
               >
                 Manage Privacy Settings
               </button>
               <button
                 onClick={handleExportData}
                 disabled={loading}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2"
+                className="w-full text-left px-4 py-2 text-sm text-dark-200 hover:bg-dark-700 rounded-md transition-colors flex items-center gap-2"
               >
                 <Download size={16} />
                 Export My Data
@@ -352,31 +353,31 @@ export default function AccountSettings({ isOpen, onClose }: AccountSettingsProp
             </div>
           </div>
 
-          <div className="p-4 bg-red-50 rounded-lg">
-            <h3 className="font-medium text-red-900 mb-2 flex items-center gap-2">
-              <AlertTriangle size={20} className="text-red-600" />
+          <div className="p-4 bg-red-900/20 rounded-lg">
+            <h3 className="font-medium text-red-200 mb-2 flex items-center gap-2">
+              <AlertTriangle size={20} className="text-red-400" />
               Danger Zone
             </h3>
-            <p className="text-sm text-red-700 mb-3">
+            <p className="text-sm text-red-300 mb-3">
               Once you delete your account, there is no going back. Please be certain.
             </p>
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors flex items-center gap-2"
+                className="w-full px-4 py-2 text-sm text-red-400 hover:bg-red-900/30 rounded-md transition-colors flex items-center gap-2"
               >
                 <Trash2 size={16} />
                 Delete Account
               </button>
             ) : (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-red-800">
+                <p className="text-sm font-medium text-red-200">
                   Are you absolutely sure?
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm text-dark-200 bg-dark-700 hover:bg-dark-600 rounded-md transition-colors"
                   >
                     Cancel
                   </button>
