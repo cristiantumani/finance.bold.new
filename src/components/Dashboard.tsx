@@ -1,26 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Wallet, 
-  TrendingUp, 
-  TrendingDown, 
-  PieChart,
-  Plus,
-  DollarSign,
-  ArrowRight,
+  Plus, 
+  Search,
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Upload,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  Calendar,
   Settings,
+  X,
+  Users,
+  UserPlus,
+  UserMinus,
+  Coffee,
+  CircleDollarSign,
+  Wallet,
+  Receipt,
+  Percent,
+  DollarSign,
   ChevronDown,
   FolderOpen,
   Calculator,
-  Upload,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   BarChart,
-  CircleDollarSign,
   Banknote,
-  Receipt,
-  Percent
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -258,7 +269,16 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
           Financial Dashboard
         </h1>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          <a
+            href="https://buymeacoffee.com/cristian_tumani"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-[#FFDD00] text-[#000000] px-4 py-2.5 rounded-xl hover:bg-[#FFDD00]/90 transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            <Coffee size={20} />
+            <span className="font-medium">Buy me a coffee</span>
+          </a>
           <button 
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"

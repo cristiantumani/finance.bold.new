@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Transaction, ExpenseType } from '../types/finance';
+import { Calendar } from 'lucide-react';
 
 type Category = {
   id: string;
@@ -189,16 +190,19 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
             <label className="block text-sm font-medium text-dark-200 mb-2">
               Date
             </label>
-            <input
-              type="date"
-              required
-              value={formData.date}
-              onChange={(e) => setFormData({
-                ...formData,
-                date: e.target.value
-              })}
-              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
-            />
+            <div className="relative">
+              <input
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  date: e.target.value
+                })}
+                className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
+              />
+              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-400" size={20} />
+            </div>
           </div>
         </div>
 
