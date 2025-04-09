@@ -7,10 +7,10 @@
 2. Complete profile
 3. Set privacy preferences
 4. Choose categories, you can either choose the ones we present by default, or you can create your owns
-5. Define a budget per category, this is highly recomended so you can have control on your expenses
+5. Define a budget per category, this is highly recommended so you can have control on your expenses
 
 ### 2. Dashboard Overview
-- Total balance - presents the remainng balance of the month in course
+- Total balance - presents the remaining balance of the month in course
 - Monthly income - presents the total income of current month
 - Monthly expenses- presents monthly expenses of active month
 - Savings rate - it's how much you would be saving right now taking in consideration your Income vs expenses
@@ -28,10 +28,20 @@
 
 #### Importing Transactions
 1. Go to Import page
-2. Download template
-3. Fill template
-4. Upload file
+2. Download template (available in Excel format)
+3. Fill template with your transactions
+4. Upload file (supports CSV, XLSX, and XLS formats)
 5. Review and confirm
+
+Supported file formats:
+- Excel Workbook (.xlsx)
+- Excel 97-2003 Workbook (.xls)
+- Comma Separated Values (.csv)
+
+Date formats:
+- Use YYYY-MM-DD format (e.g., 2024-03-25)
+- Excel date formats are automatically converted
+- For CSV files, ensure dates are in YYYY-MM-DD format
 
 ### 4. Budgets
 

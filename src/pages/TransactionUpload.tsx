@@ -62,18 +62,95 @@ export default function TransactionUpload() {
     }
   }, [user]);
 
-  const validateTransactions = (data: any[]): [ParsedTransaction[], ValidationError[]] => {
+  const findOrCreateCategory = async (name: string, isIncome: boolean): Promise<Category | null> => {
+    if (!user) return null;
+
+    try {
+      // First, check if the category already exists in the database
+      const { data: existingCategory, error: queryError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('name', name)
+        .eq('income_category', isIncome)
+        .single();
+
+      if (queryError && queryError.code !== 'PGRST116') { // PGRST116 means no rows returned
+        throw queryError;
+      }
+
+      if (existingCategory) {
+        return existingCategory;
+      }
+
+      // If category doesn't exist, create it
+      const { data: newCategory, error: insertError } = await supabase
+        .from('categories')
+        .insert([{
+          user_id: user.id,
+          name: name,
+          income_category: isIncome,
+          expense_type: isIncome ? null : 'variable' // Default to variable for expense categories
+        }])
+        .select()
+        .single();
+
+      if (insertError) {
+        // If we get a duplicate key error, try fetching the category one more time
+        // as it might have been created by another concurrent operation
+        if (insertError.code === '23505') {
+          const { data: retryCategory, error: retryError } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('name', name)
+            .eq('income_category', isIncome)
+            .single();
+
+          if (retryError) throw retryError;
+          return retryCategory;
+        }
+        throw insertError;
+      }
+
+      // Update local categories state
+      setCategories(prev => [...prev, newCategory]);
+      return newCategory;
+    } catch (error) {
+      console.error('Error finding or creating category:', error);
+      return null;
+    }
+  };
+
+  const formatExcelDate = (date: any): string => {
+    let dateStr = '';
+    
+    if (date instanceof Date) {
+      // Format Date object to YYYY-MM-DD
+      dateStr = date.toISOString().split('T')[0];
+    } else if (typeof date === 'number') {
+      // Handle Excel serial number dates
+      const excelEpoch = new Date(1899, 11, 30);
+      const dateObj = new Date(excelEpoch.getTime() + (date * 24 * 60 * 60 * 1000));
+      dateStr = dateObj.toISOString().split('T')[0];
+    } else {
+      // Handle string dates
+      dateStr = String(date).trim();
+    }
+
+    return dateStr;
+  };
+
+  const validateTransactions = async (data: any[]): Promise<[ParsedTransaction[], ValidationError[]]> => {
     const validTransactions: ParsedTransaction[] = [];
     const validationErrors: ValidationError[] = [];
 
-    data.forEach((row, index) => {
+    for (const [index, row] of data.entries()) {
       const rowNumber = index + 2; // Add 2 to account for header row and 0-based index
       const errors: ValidationError[] = [];
 
-      // Convert date to string if it's a Date object (Excel sometimes parses dates automatically)
-      const dateStr = row.date instanceof Date 
-        ? row.date.toISOString().split('T')[0]
-        : String(row.date).trim();
+      // Handle date formatting
+      const dateStr = formatExcelDate(row.date);
 
       // Validate date
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -100,20 +177,6 @@ export default function TransactionUpload() {
       // Convert category to string and trim
       const categoryStr = String(row.category || '').trim();
 
-      // Validate category
-      const category = categories.find(c => 
-        c.name.toLowerCase() === categoryStr.toLowerCase() &&
-        c.income_category === (typeStr === 'income')
-      );
-      
-      if (!category) {
-        errors.push({
-          row: rowNumber,
-          column: 'category',
-          message: `Category "${categoryStr}" not found for type ${typeStr}`
-        });
-      }
-
       // Convert amount to number
       const amount = typeof row.amount === 'number' 
         ? row.amount 
@@ -128,19 +191,30 @@ export default function TransactionUpload() {
         });
       }
 
-      if (errors.length === 0 && category) {
-        validTransactions.push({
-          date: dateStr,
-          type: typeStr as 'income' | 'expense',
-          category_id: category.id,
-          category_name: category.name,
-          amount: amount,
-          description: row.description ? String(row.description).trim() : undefined
-        });
+      if (errors.length === 0) {
+        const category = await findOrCreateCategory(categoryStr, typeStr === 'income');
+
+        if (category) {
+          validTransactions.push({
+            date: dateStr,
+            type: typeStr as 'income' | 'expense',
+            category_id: category.id,
+            category_name: category.name,
+            amount: amount,
+            description: row.description ? String(row.description).trim() : undefined
+          });
+        } else {
+          errors.push({
+            row: rowNumber,
+            column: 'category',
+            message: 'Failed to create or find category'
+          });
+          validationErrors.push(...errors);
+        }
       } else {
         validationErrors.push(...errors);
       }
-    });
+    }
 
     return [validTransactions, validationErrors];
   };
@@ -165,11 +239,11 @@ export default function TransactionUpload() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = read(data, { type: 'array' });
+        const workbook = read(data, { type: 'array', cellDates: true });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = utils.sheet_to_json(worksheet);
 
-        const [validTransactions, validationErrors] = validateTransactions(jsonData);
+        const [validTransactions, validationErrors] = await validateTransactions(jsonData);
         setParsedData(validTransactions);
         setErrors(validationErrors);
 
@@ -197,8 +271,12 @@ export default function TransactionUpload() {
       const batchSize = 50;
       for (let i = 0; i < parsedData.length; i += batchSize) {
         const batch = parsedData.slice(i, i + batchSize).map(transaction => ({
-          ...transaction,
-          user_id: user.id
+          user_id: user.id,
+          date: transaction.date,
+          type: transaction.type,
+          category_id: transaction.category_id,
+          amount: transaction.amount,
+          description: transaction.description
         }));
 
         const { error } = await supabase
@@ -236,19 +314,22 @@ export default function TransactionUpload() {
   };
 
   const downloadTemplate = () => {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    
     const template = [
       {
-        date: '2024-02-15',
+        date: today,
         type: 'expense',
         category: 'Groceries',
-        amount: '150.50',
+        amount: 150.50,
         description: 'Weekly grocery shopping'
       },
       {
-        date: '2024-02-15',
+        date: today,
         type: 'income',
         category: 'Salary',
-        amount: '5000.00',
+        amount: 5000.00,
         description: 'Monthly salary'
       }
     ];
@@ -256,12 +337,12 @@ export default function TransactionUpload() {
     const ws = utils.json_to_sheet(template);
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, 'Template');
-    writeFile(wb, 'transaction_upload_template.csv');
+    writeFile(wb, 'transaction_template.xlsx');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <Link 
             to="/transactions" 
@@ -272,7 +353,7 @@ export default function TransactionUpload() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Upload Transactions</h1>
           <p className="text-gray-600">
-            Import your transactions from a CSV file.
+            Import your transactions from a CSV or Excel file.
           </p>
         </div>
 
@@ -284,7 +365,7 @@ export default function TransactionUpload() {
                 <div>
                   <h3 className="font-medium text-gray-700 mb-2">1. Prepare Your File</h3>
                   <p className="text-gray-600 mb-2">
-                    Your CSV file should have the following columns:
+                    Your file should have the following columns:
                   </p>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <code className="text-sm">
@@ -311,7 +392,7 @@ export default function TransactionUpload() {
                     className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
                   >
                     <Download size={16} />
-                    Download CSV Template
+                    Download Template
                   </button>
                 </div>
               </div>
