@@ -8,8 +8,6 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  verifyEmail: (token: string) => Promise<void>;
-  resendVerification: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -35,13 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // First create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/verify`,
-        }
+        password
       });
       
       if (error) {
@@ -49,17 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('An account with this email already exists');
         }
         throw error;
-      }
-
-      // Create verification token using service role client
-      if (data.user) {
-        const { error: tokenError } = await supabase.rpc('create_verification_token', {
-          p_user_id: data.user.id,
-          p_token: crypto.randomUUID(),
-          p_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        });
-
-        if (tokenError) throw tokenError;
       }
     } catch (error: any) {
       console.error('SignUp error:', error);
@@ -93,43 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const verifyEmail = async (token: string) => {
-    try {
-      // Verify token using RPC function
-      const { error } = await supabase.rpc('verify_email', {
-        p_token: token
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Verification error:', error);
-      throw error;
-    }
-  };
-
-  const resendVerification = async (email: string) => {
-    try {
-      // Resend verification using RPC function
-      const { error } = await supabase.rpc('resend_verification', {
-        p_email: email
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Resend verification error:', error);
-      throw error;
-    }
-  };
-
   return (
     <AuthContext.Provider value={{ 
       user, 
       loading, 
       signUp, 
       signIn, 
-      signOut,
-      verifyEmail,
-      resendVerification
+      signOut
     }}>
       {!loading && children}
     </AuthContext.Provider>

@@ -17,27 +17,25 @@ import TransactionUpload from './pages/TransactionUpload';
 import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import VerifyEmail from './pages/VerifyEmail';
-import ProfileSetup from './pages/ProfileSetup';
+import OnboardingSetup from './pages/OnboardingSetup';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen pb-20">
+        <div className="min-h-screen bg-dark-950">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route path="/verify" element={<VerifyEmail />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/profile-setup" element={
+            <Route path="/expense-types" element={<ExpenseTypes />} />
+            <Route path="/onboarding" element={
               <AuthGuard>
-                <ProfileSetup />
+                <OnboardingSetup />
               </AuthGuard>
             } />
-            <Route path="/expense-types" element={<ExpenseTypes />} />
             <Route path="/categories" element={
               <AuthGuard>
                 <Categories />

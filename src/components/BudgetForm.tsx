@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Budget } from '../types/finance';
@@ -13,7 +13,7 @@ type Category = {
 type BudgetFormProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<Budget, 'id' | 'spent'>) => Promise<void>;
+  onSubmit: (data: Omit<Budget, 'id' | 'spent'> & { id?: string }) => Promise<void>;
   initialData?: Partial<Budget>;
   title: string;
 };
@@ -27,11 +27,26 @@ export default function BudgetForm({
 }: BudgetFormProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [formData, setFormData] = React.useState({
+  const [existingBudget, setExistingBudget] = useState<Budget | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
     category_id: initialData?.category_id || '',
     budget_limit: initialData?.budget_limit?.toString() || '',
     period: initialData?.period || 'monthly'
   });
+
+  // Reset form state when modal is opened/closed
+  useEffect(() => {
+    if (!isOpen) {
+      setExistingBudget(null);
+      setIsEditing(false);
+      setFormData({
+        category_id: initialData?.category_id || '',
+        budget_limit: initialData?.budget_limit?.toString() || '',
+        period: initialData?.period || 'monthly'
+      });
+    }
+  }, [isOpen, initialData]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -62,35 +77,131 @@ export default function BudgetForm({
       }
     };
 
-    fetchCategories();
-  }, [user, initialData]);
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [user, initialData, isOpen]);
+
+  // Check for existing budget when category changes
+  useEffect(() => {
+    const checkExistingBudget = async () => {
+      if (!user || !formData.category_id || initialData?.id || !isOpen) {
+        setExistingBudget(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('budgets')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('category_id', formData.category_id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking existing budget:', error);
+          return;
+        }
+
+        if (data) {
+          setExistingBudget(data);
+          // If we're editing, pre-fill the form with existing data
+          if (isEditing) {
+            setFormData({
+              category_id: data.category_id,
+              budget_limit: data.budget_limit.toString(),
+              period: data.period
+            });
+          }
+        } else {
+          setExistingBudget(null);
+        }
+      } catch (error) {
+        console.error('Error checking existing budget:', error);
+      }
+    };
+
+    checkExistingBudget();
+  }, [user, formData.category_id, initialData, isEditing, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If there's an existing budget and we're not in edit mode, don't submit
+    if (existingBudget && !isEditing && !initialData) {
+      return;
+    }
+
     await onSubmit({
+      ...(existingBudget && isEditing && { id: existingBudget.id }),
       category_id: formData.category_id,
       budget_limit: Number(formData.budget_limit),
       period: formData.period as 'monthly' | 'weekly' | 'yearly'
     });
+
+    // Reset form state after successful submission
+    setExistingBudget(null);
+    setIsEditing(false);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-dark-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-dark-700">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-dark-50">{title}</h2>
           <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            onClick={() => {
+              setIsEditing(false);
+              onClose();
+            }}
+            className="text-dark-400 hover:text-dark-200 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        {existingBudget && !initialData && !isEditing && (
+          <div className="mb-6 bg-yellow-900/20 border border-yellow-900/30 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-yellow-500 mt-0.5" size={20} />
+              <div>
+                <h3 className="text-yellow-500 font-medium mb-1">
+                  Budget Already Exists
+                </h3>
+                <p className="text-dark-200 text-sm mb-3">
+                  A budget for this category already exists with a limit of ${existingBudget.budget_limit} ({existingBudget.period}).
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setFormData({
+                        category_id: existingBudget.category_id,
+                        budget_limit: existingBudget.budget_limit.toString(),
+                        period: existingBudget.period
+                      });
+                    }}
+                    className="text-sm px-3 py-1.5 bg-yellow-500/20 text-yellow-500 rounded-lg hover:bg-yellow-500/30 transition-colors"
+                  >
+                    Edit Existing Budget
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="text-sm px-3 py-1.5 text-dark-300 hover:text-dark-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Category
             </label>
             <select
@@ -100,18 +211,19 @@ export default function BudgetForm({
                 ...formData,
                 category_id: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              disabled={isEditing || initialData !== undefined}
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100 disabled:opacity-50"
             >
-              <option value="">Select a category</option>
+              <option value="" className="text-dark-400">Select a category</option>
               {categories.map(category => (
-                <option key={category.id} value={category.id}>
+                <option key={category.id} value={category.id} className="text-dark-100">
                   {category.name}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Budget Limit
             </label>
             <input
@@ -123,12 +235,12 @@ export default function BudgetForm({
                 ...formData,
                 budget_limit: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100 placeholder-dark-400"
               placeholder="0.00"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-200 mb-2">
               Period
             </label>
             <select
@@ -138,27 +250,32 @@ export default function BudgetForm({
                 ...formData,
                 period: e.target.value
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
             >
-              <option value="monthly">Monthly</option>
-              <option value="weekly">Weekly</option>
-              <option value="yearly">Yearly</option>
+              <option value="monthly" className="text-dark-100">Monthly</option>
+              <option value="weekly" className="text-dark-100">Weekly</option>
+              <option value="yearly" className="text-dark-100">Yearly</option>
             </select>
           </div>
-          <div className="flex justify-end gap-3 mt-6">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+              onClick={() => {
+                setIsEditing(false);
+                onClose();
+              }}
+              className="px-4 py-2 text-sm font-medium text-dark-200 hover:text-dark-100 transition-colors"
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {initialData ? 'Update' : 'Add'} Budget
-            </button>
+            {(!existingBudget || isEditing || initialData) && (
+              <button
+                type="submit"
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200"
+              >
+                {isEditing || initialData ? 'Update' : 'Add'} Budget
+              </button>
+            )}
           </div>
         </form>
       </div>

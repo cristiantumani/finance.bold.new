@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -9,7 +9,6 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [signupComplete, setSignupComplete] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -24,45 +23,13 @@ export default function SignUp() {
       setError('');
       setLoading(true);
       await signUp(email, password);
-      setSignupComplete(true);
+      navigate('/onboarding');
     } catch (err: any) {
       setError(err.message || 'Failed to create an account');
     } finally {
       setLoading(false);
     }
   };
-
-  if (signupComplete) {
-    return (
-      <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="flex justify-center">
-            <Mail className="h-12 w-12 text-indigo-500" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-dark-50">
-            Check your email
-          </h2>
-          <p className="mt-2 text-center text-sm text-dark-300">
-            We've sent a verification link to {email}.<br />
-            Please click the link to verify your account.
-          </p>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-dark-400">
-              The verification link will expire in 24 hours.
-            </p>
-          </div>
-          <div className="mt-6 text-center">
-            <Link
-              to="/login"
-              className="font-medium text-indigo-400 hover:text-indigo-300"
-            >
-              Return to login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

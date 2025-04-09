@@ -5,8 +5,6 @@ import {
   Search,
   Edit2,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   Upload,
   ArrowUpDown,
@@ -31,13 +29,16 @@ import {
   LogOut,
   BarChart,
   Banknote,
-  ArrowRight
+  ArrowRight,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import TransactionForm from './TransactionForm';
 import QuickTransactionForm from './QuickTransactionForm';
 import AccountSettings from './AccountSettings';
+import MonthSwitcher from './MonthSwitcher';
 import type { Transaction, Budget, FinancialHealth } from '../types/finance';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
@@ -64,8 +65,15 @@ type DropdownState = {
   };
 };
 
+type SetupStatus = {
+  hasIncomeCategory: boolean;
+  hasExpenseCategories: boolean;
+  hasBudgets: boolean;
+  hasTransactions: boolean;
+};
+
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
@@ -83,6 +91,12 @@ export default function Dashboard() {
     monthlyIncome: 0,
     monthlyExpenses: 0,
     savingsRate: 0
+  });
+  const [setupStatus, setSetupStatus] = useState<SetupStatus>({
+    hasIncomeCategory: false,
+    hasExpenseCategories: false,
+    hasBudgets: false,
+    hasTransactions: false
   });
 
   const getBudgetStatusColor = (spent: number, limit: number) => {
@@ -120,18 +134,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
-
-  const handlePreviousMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1));
-  };
-
-  const handleNextMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
-  };
-
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   };
 
   useEffect(() => {
@@ -209,27 +211,91 @@ export default function Dashboard() {
     }
   };
 
+  const fetchSetupStatus = async () => {
+    if (!user) return;
+
+    try {
+      // Get all categories
+      const { data: categories, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (categoriesError) throw categoriesError;
+
+      // Get all budgets
+      const { data: budgets, error: budgetsError } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (budgetsError) throw budgetsError;
+
+      // Get all transactions
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (transactionsError) throw transactionsError;
+
+      // Count income and expense categories
+      const incomeCategories = categories?.filter(c => c.income_category) || [];
+      const expenseCategories = categories?.filter(c => !c.income_category) || [];
+
+      // Update setup status
+      setSetupStatus({
+        hasIncomeCategory: incomeCategories.length > 0,
+        hasExpenseCategories: expenseCategories.length >= 2,
+        hasBudgets: (budgets?.length || 0) > 0,
+        hasTransactions: (transactions?.length || 0) > 0
+      });
+    } catch (error) {
+      console.error('Error fetching setup status:', error);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     fetchData();
+    fetchSetupStatus();
 
+    // Subscribe to changes in categories
+    const categoriesSubscription = supabase
+      .channel('categories')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${user.id}` },
+        () => fetchSetupStatus()
+      )
+      .subscribe();
+
+    // Subscribe to changes in transactions
     const transactionsSubscription = supabase
       .channel('transactions')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` },
-        () => fetchData()
+        () => {
+          fetchData();
+          fetchSetupStatus();
+        }
       )
       .subscribe();
 
+    // Subscribe to changes in budgets
     const budgetsSubscription = supabase
       .channel('budgets')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` },
-        () => fetchData()
+        () => {
+          fetchData();
+          fetchSetupStatus();
+        }
       )
       .subscribe();
 
     return () => {
+      categoriesSubscription.unsubscribe();
       transactionsSubscription.unsubscribe();
       budgetsSubscription.unsubscribe();
     };
@@ -263,12 +329,25 @@ export default function Dashboard() {
     );
   }
 
+  const isSetupComplete = 
+    setupStatus.hasIncomeCategory && 
+    setupStatus.hasExpenseCategories && 
+    setupStatus.hasBudgets;
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-          Financial Dashboard
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            Financial Dashboard
+          </h1>
+          <div className="mt-2">
+            <MonthSwitcher 
+              selectedDate={selectedDate} 
+              onChange={setSelectedDate} 
+            />
+          </div>
+        </div>
         <div className="flex gap-4 items-center">
           <a
             href="https://buymeacoffee.com/cristian_tumani"
@@ -359,6 +438,63 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {!isSetupComplete && (
+        <div className="mb-8 bg-dark-800/50 backdrop-blur-xl rounded-2xl shadow-lg border border-dark-700 p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-indigo-500/10 rounded-xl">
+              <AlertCircle className="text-indigo-400" size={24} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-dark-50 mb-2">
+                Complete Your Financial Setup
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                    setupStatus.hasIncomeCategory ? 'bg-emerald-500' : 'bg-dark-700'
+                  }`}>
+                    {setupStatus.hasIncomeCategory && <CheckCircle size={14} className="text-white" />}
+                  </div>
+                  <span className="text-dark-200">Create at least 1 Income Category</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                    setupStatus.hasExpenseCategories ? 'bg-emerald-500' : 'bg-dark-700'
+                  }`}>
+                    {setupStatus.hasExpenseCategories && <CheckCircle size={14} className="text-white" />}
+                  </div>
+                  <span className="text-dark-200">Create at least 2 Expense Categories</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                    setupStatus.hasBudgets ? 'bg-emerald-500' : 'bg-dark-700'
+                  }`}>
+                    {setupStatus.hasBudgets && <CheckCircle size={14} className="text-white" />}
+                  </div>
+                  <span className="text-dark-200">Set up at least 1 Budget</span>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-4">
+                <Link 
+                  to="/categories"
+                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors"
+                >
+                  <FolderOpen size={18} />
+                  Manage Categories
+                </Link>
+                <Link 
+                  to="/budgets"
+                  className="flex items-center gap-2 bg-dark-700 text-dark-100 px-4 py-2 rounded-xl hover:bg-dark-600 transition-colors"
+                >
+                  <Calculator size={18} />
+                  Set Up Budgets
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">

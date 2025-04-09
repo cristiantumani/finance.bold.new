@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Transaction, ExpenseType } from '../types/finance';
@@ -26,6 +26,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
     date: new Date().toISOString().split('T')[0]
   });
   const [loading, setLoading] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -85,6 +86,23 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
       console.error('Error adding transaction:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    if (dateInputRef.current) {
+      const input = dateInputRef.current;
+      
+      // Create a new click event
+      const clickEvent = new MouseEvent('mousedown', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+      });
+      
+      // Dispatch the event on the input
+      input.dispatchEvent(clickEvent);
     }
   };
 
@@ -192,6 +210,7 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
             </label>
             <div className="relative">
               <input
+                ref={dateInputRef}
                 type="date"
                 required
                 value={formData.date}
@@ -201,7 +220,13 @@ export default function QuickTransactionForm({ onSuccess }: QuickTransactionForm
                 })}
                 className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
               />
-              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-400" size={20} />
+              <button
+                type="button"
+                onClick={handleCalendarClick}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-400 hover:text-dark-200 transition-colors"
+              >
+                <Calendar size={20} />
+              </button>
             </div>
           </div>
         </div>

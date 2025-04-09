@@ -63,8 +63,8 @@ export default function ProfileSetup() {
 
       if (profileError) throw profileError;
 
-      // Navigate to dashboard after successful profile creation
-      navigate('/dashboard', { replace: true });
+      // Navigate to onboarding after profile creation
+      navigate('/onboarding', { replace: true });
     } catch (err: any) {
       console.error('Error saving profile:', err);
       setError(err.message || 'Failed to save profile');
@@ -189,7 +189,8 @@ export default function ProfileSetup() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="location"
+                    className="block text-sm font-medium text-gray-700">
                     Where are you located? (Optional)
                   </label>
                   <input

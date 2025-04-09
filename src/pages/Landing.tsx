@@ -253,7 +253,7 @@ export default function Landing() {
               <div className="mt-4 flex justify-center">
                 <div className="bg-dark-800 px-4 py-2 rounded-lg border border-dark-700">
                   <span className="text-dark-300">Spots remaining: </span>
-                  <span className="text-indigo-400 font-bold">25</span>
+                  <span className="text-indigo-400 font-bold">21</span>
                 </div>
               </div>
             </div>

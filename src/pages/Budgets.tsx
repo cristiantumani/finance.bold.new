@@ -17,6 +17,7 @@ import {
   Receipt,
   Percent
 } from 'lucide-react';
+import MonthSwitcher from '../components/MonthSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Budget } from '../types/finance';
@@ -313,26 +314,32 @@ export default function Budgets() {
   return (
     <div className="min-h-screen bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <Link 
-              to="/dashboard" 
-              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
+        <div className="mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <Link 
+                to="/dashboard" 
+                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
+              >
+                <ArrowLeft size={16} />
+                Back to Dashboard
+              </Link>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                Budget Management
+              </h1>
+              <MonthSwitcher 
+                selectedDate={selectedDate} 
+                onChange={setSelectedDate} 
+              />
+            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
             >
-              <ArrowLeft size={16} />
-              Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Budget Management
-            </h1>
+              <Plus size={20} />
+              Add Budget
+            </button>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <Plus size={20} />
-            Add Budget
-          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -442,6 +449,12 @@ export default function Budgets() {
               <tbody className="divide-y divide-dark-700">
                 {budgets.map((budget) => {
                   const percentage = (budget.spent / budget.budget_limit) * 100;
+                  const expenseType = budget.categories?.expense_type
+                    ? budget.categories.expense_type.split('_').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                      ).join(' ')
+                    : 'N/A';
+
                   return (
                     <tr key={budget.id} className="hover:bg-dark-700/50 transition-colors">
                       <td className="px-6 py-4">
@@ -449,8 +462,7 @@ export default function Budgets() {
                           {budget.categories?.name || 'Uncategorized'}
                         </div>
                         <div className="text-sm text-dark-400">
-                          {budget.categories?.expense_type.replace('_', ' ').charAt(0).toUpperCase() +
-                            budget.categories?.expense_type.slice(1).replace('_', ' ') || 'N/A'}
+                          {expenseType}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-dark-100">
@@ -475,7 +487,7 @@ export default function Budgets() {
                                 ? 'bg-yellow-500'
                                 : 'bg-emerald-500'
                             }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                            style={{width: `${Math.min(percentage, 100)}%`}}
                           />
                         </div>
                         <div className="mt-1 text-sm text-dark-400">
@@ -522,9 +534,18 @@ export default function Budgets() {
         <BudgetForm
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSubmit={editingBudget ? handleUpdateBudget : handleAddBudget}
-          initialData={editingBudget || undefined}
-          title={editingBudget ? 'Edit Budget' : 'Add Budget'}
+          onSubmit={handleAddBudget}
+          title="Add Budget"
+        />
+      )}
+
+      {editingBudget && (
+        <BudgetForm
+          isOpen={true}
+          onClose={() => setEditingBudget(null)}
+          onSubmit={handleUpdateBudget}
+          initialData={editingBudget}
+          title="Edit Budget"
         />
       )}
     </div>

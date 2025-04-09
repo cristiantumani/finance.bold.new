@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import MonthSwitcher from '../components/MonthSwitcher';
 import { 
   ArrowLeft,
   TrendingUp,
@@ -44,6 +45,7 @@ export default function Reports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
   const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([]);
   const [expenseTypeDistribution, setExpenseTypeDistribution] = useState<{
@@ -291,26 +293,23 @@ export default function Reports() {
     <div className="min-h-screen bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link 
-            to="/dashboard" 
-            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Link>
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Financial Reports
-            </h1>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-dark-800 border border-dark-700 text-dark-100 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {years.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+          <div className="flex justify-between items-start">
+            <div>
+              <Link 
+                to="/dashboard" 
+                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-2"
+              >
+                <ArrowLeft size={16} />
+                Back to Dashboard
+              </Link>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                Financial Reports
+              </h1>
+              <MonthSwitcher 
+                selectedDate={selectedDate} 
+                onChange={setSelectedDate} 
+              />
+            </div>
           </div>
         </div>
 
