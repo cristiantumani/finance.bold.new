@@ -6,7 +6,7 @@ interface MonthSwitcherProps {
   onChange: (date: Date) => void;
 }
 
-export default function MonthSwitcher({ selectedDate, onChange }: MonthSwitcherProps) {
+function MonthSwitcher({ selectedDate, onChange }: MonthSwitcherProps) {
   const handlePreviousMonth = () => {
     onChange(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1));
   };
@@ -39,3 +39,5 @@ export default function MonthSwitcher({ selectedDate, onChange }: MonthSwitcherP
     </div>
   );
 }
+
+export default MonthSwitcher;

@@ -2,48 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
-  Search,
-  Edit2,
-  Trash2,
-  Filter,
-  Upload,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Download,
-  Calendar,
-  Settings,
+  FolderOpen, 
+  Settings, 
+  ChevronDown, 
+  Upload, 
+  Calculator, 
+  BarChart, 
+  LogOut,
+  Menu,
   X,
-  Users,
-  UserPlus,
-  UserMinus,
-  Coffee,
   CircleDollarSign,
   Wallet,
   Receipt,
   Percent,
   DollarSign,
-  ChevronDown,
-  FolderOpen,
-  Calculator,
-  LogOut,
-  BarChart,
-  Banknote,
-  ArrowRight,
-  CheckCircle,
-  AlertCircle
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import MonthSwitcher from './MonthSwitcher';
 import TransactionForm from './TransactionForm';
 import QuickTransactionForm from './QuickTransactionForm';
 import AccountSettings from './AccountSettings';
-import MonthSwitcher from './MonthSwitcher';
-import type { Transaction, Budget, FinancialHealth } from '../types/finance';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
+import SmartFinanceTips from './SmartFinanceTips';
+import type { Transaction, Budget } from '../types/finance';
 
 type TransactionWithCategory = Transaction & {
   categories: {
@@ -57,98 +39,26 @@ type BudgetWithCategory = Budget & {
   } | null;
 };
 
-type DropdownState = {
-  isOpen: boolean;
-  position: {
-    top: number;
-    left: number;
-  };
-};
-
-type SetupStatus = {
-  hasIncomeCategory: boolean;
-  hasExpenseCategories: boolean;
-  hasBudgets: boolean;
-  hasTransactions: boolean;
-};
-
-export default function Dashboard() {
+function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
-  const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [dropdownState, setDropdownState] = useState<DropdownState>({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [dropdownState, setDropdownState] = useState({
     isOpen: false,
     position: { top: 0, left: 0 }
   });
-  const [financialHealth, setFinancialHealth] = useState<FinancialHealth>({
+  const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
+  const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [financialHealth, setFinancialHealth] = useState({
     totalBalance: 0,
     monthlyIncome: 0,
     monthlyExpenses: 0,
     savingsRate: 0
   });
-  const [setupStatus, setSetupStatus] = useState<SetupStatus>({
-    hasIncomeCategory: false,
-    hasExpenseCategories: false,
-    hasBudgets: false,
-    hasTransactions: false
-  });
-
-  const getBudgetStatusColor = (spent: number, limit: number) => {
-    const percentage = (spent / limit) * 100;
-    if (percentage > 100) return 'bg-red-500';
-    if (percentage === 100) return 'bg-indigo-500';
-    return 'bg-emerald-500';
-  };
-
-  const getBudgetTextColor = (spent: number, limit: number) => {
-    const percentage = (spent / limit) * 100;
-    if (percentage > 100) return 'text-red-500';
-    if (percentage === 100) return 'text-indigo-500';
-    return 'text-emerald-500';
-  };
-
-  const handleMoreOptionsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    
-    setDropdownState({
-      isOpen: !dropdownState.isOpen,
-      position: {
-        top: rect.bottom + 5,
-        left: rect.right - 224
-      }
-    });
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownState.isOpen) {
-        const target = event.target as HTMLElement;
-        if (!target.closest('.more-options-button') && !target.closest('.more-options-dropdown')) {
-          setDropdownState(prev => ({ ...prev, isOpen: false }));
-        }
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [dropdownState.isOpen]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -211,113 +121,28 @@ export default function Dashboard() {
     }
   };
 
-  const fetchSetupStatus = async () => {
-    if (!user) return;
-
-    try {
-      // Get all categories
-      const { data: categories, error: categoriesError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (categoriesError) throw categoriesError;
-
-      // Get all budgets
-      const { data: budgets, error: budgetsError } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (budgetsError) throw budgetsError;
-
-      // Get all transactions
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      if (transactionsError) throw transactionsError;
-
-      // Count income and expense categories
-      const incomeCategories = categories?.filter(c => c.income_category) || [];
-      const expenseCategories = categories?.filter(c => !c.income_category) || [];
-
-      // Update setup status
-      setSetupStatus({
-        hasIncomeCategory: incomeCategories.length > 0,
-        hasExpenseCategories: expenseCategories.length >= 2,
-        hasBudgets: (budgets?.length || 0) > 0,
-        hasTransactions: (transactions?.length || 0) > 0
-      });
-    } catch (error) {
-      console.error('Error fetching setup status:', error);
-    }
-  };
-
   useEffect(() => {
-    if (!user) return;
     fetchData();
-    fetchSetupStatus();
-
-    // Subscribe to changes in categories
-    const categoriesSubscription = supabase
-      .channel('categories')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${user.id}` },
-        () => fetchSetupStatus()
-      )
-      .subscribe();
-
-    // Subscribe to changes in transactions
-    const transactionsSubscription = supabase
-      .channel('transactions')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` },
-        () => {
-          fetchData();
-          fetchSetupStatus();
-        }
-      )
-      .subscribe();
-
-    // Subscribe to changes in budgets
-    const budgetsSubscription = supabase
-      .channel('budgets')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` },
-        () => {
-          fetchData();
-          fetchSetupStatus();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      categoriesSubscription.unsubscribe();
-      transactionsSubscription.unsubscribe();
-      budgetsSubscription.unsubscribe();
-    };
   }, [user, selectedDate]);
 
-  const handleAddTransaction = async (data: Omit<Transaction, 'id'>) => {
-    if (!user) return;
+  const handleMoreOptionsClick = (event: React.MouseEvent) => {
+    const button = event.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    setDropdownState(prev => ({
+      isOpen: !prev.isOpen,
+      position: {
+        top: rect.bottom + 8,
+        left: Math.min(rect.right - 224, window.innerWidth - 240)
+      }
+    }));
+  };
 
+  const handleSignOut = async () => {
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .insert([{
-          user_id: user.id,
-          ...data
-        }]);
-
-      if (error) throw error;
-
-      setIsModalOpen(false);
-      fetchData();
+      await signOut();
+      navigate('/login');
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -329,14 +154,82 @@ export default function Dashboard() {
     );
   }
 
-  const isSetupComplete = 
-    setupStatus.hasIncomeCategory && 
-    setupStatus.hasExpenseCategories && 
-    setupStatus.hasBudgets;
-
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div className="relative min-h-screen pb-24">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700 z-40">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            Financial Dashboard
+          </h1>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-dark-200 hover:text-dark-100"
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+        
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-full left-0 right-0 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700">
+            <div className="p-4 space-y-4">
+              <Link 
+                to="/categories"
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <FolderOpen size={20} />
+                <span>Categories</span>
+              </Link>
+              <Link 
+                to="/budgets"
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Calculator size={20} />
+                <span>Budgets</span>
+              </Link>
+              <Link 
+                to="/reports"
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <BarChart size={20} />
+                <span>Reports</span>
+              </Link>
+              <Link 
+                to="/upload"
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Upload size={20} />
+                <span>Import</span>
+              </Link>
+              <button
+                onClick={() => {
+                  setShowAccountSettings(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+              >
+                <Settings size={20} />
+                <span>Settings</span>
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-red-400 rounded-xl hover:bg-dark-700 transition-all"
+              >
+                <LogOut size={20} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden lg:flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             Financial Dashboard
@@ -349,15 +242,13 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex gap-4 items-center">
-          <a
-            href="https://buymeacoffee.com/cristian_tumani"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-[#FFDD00] text-[#000000] px-4 py-2.5 rounded-xl hover:bg-[#FFDD00]/90 transition-all duration-200 shadow-md hover:shadow-lg"
+          <Link 
+            to="/categories"
+            className="flex items-center gap-2 bg-dark-800 text-dark-100 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
           >
-            <Coffee size={20} />
-            <span className="font-medium">Buy me a coffee</span>
-          </a>
+            <FolderOpen size={20} />
+            <span>Add Category</span>
+          </Link>
           <button 
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -390,14 +281,6 @@ export default function Dashboard() {
                 >
                   <Upload size={18} />
                   <span>Import Transactions</span>
-                </Link>
-                <Link 
-                  to="/categories"
-                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
-                  onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
-                >
-                  <FolderOpen size={18} />
-                  <span>Manage Categories</span>
                 </Link>
                 <Link 
                   to="/budgets"
@@ -439,127 +322,87 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {!isSetupComplete && (
-        <div className="mb-8 bg-dark-800/50 backdrop-blur-xl rounded-2xl shadow-lg border border-dark-700 p-6">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-indigo-500/10 rounded-xl">
-              <AlertCircle className="text-indigo-400" size={24} />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-dark-50 mb-2">
-                Complete Your Financial Setup
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    setupStatus.hasIncomeCategory ? 'bg-emerald-500' : 'bg-dark-700'
-                  }`}>
-                    {setupStatus.hasIncomeCategory && <CheckCircle size={14} className="text-white" />}
-                  </div>
-                  <span className="text-dark-200">Create at least 1 Income Category</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    setupStatus.hasExpenseCategories ? 'bg-emerald-500' : 'bg-dark-700'
-                  }`}>
-                    {setupStatus.hasExpenseCategories && <CheckCircle size={14} className="text-white" />}
-                  </div>
-                  <span className="text-dark-200">Create at least 2 Expense Categories</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    setupStatus.hasBudgets ? 'bg-emerald-500' : 'bg-dark-700'
-                  }`}>
-                    {setupStatus.hasBudgets && <CheckCircle size={14} className="text-white" />}
-                  </div>
-                  <span className="text-dark-200">Set up at least 1 Budget</span>
-                </div>
+      {/* Mobile Month Switcher */}
+      <div className="lg:hidden sticky top-16 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700 z-30 p-4">
+        <MonthSwitcher 
+          selectedDate={selectedDate} 
+          onChange={setSelectedDate} 
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 lg:pt-0">
+        {/* Financial Overview Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-2 lg:p-3 rounded-xl shadow-md">
+                <CircleDollarSign className="text-white w-4 h-4 lg:w-6 lg:h-6" />
               </div>
-              <div className="mt-6 flex gap-4">
-                <Link 
-                  to="/categories"
-                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors"
-                >
-                  <FolderOpen size={18} />
-                  Manage Categories
-                </Link>
-                <Link 
-                  to="/budgets"
-                  className="flex items-center gap-2 bg-dark-700 text-dark-100 px-4 py-2 rounded-xl hover:bg-dark-600 transition-colors"
-                >
-                  <Calculator size={18} />
-                  Set Up Budgets
-                </Link>
+              <div>
+                <p className="text-xs lg:text-sm font-medium text-dark-300">Total Balance</p>
+                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                  ${financialHealth.totalBalance.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-xl shadow-md">
-              <CircleDollarSign className="text-white" size={24} />
+          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-2 lg:p-3 rounded-xl shadow-md">
+                <Wallet className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+              </div>
+              <div>
+                <p className="text-xs lg:text-sm font-medium text-dark-300">Monthly Income</p>
+                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                  ${financialHealth.monthlyIncome.toLocaleString()}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-dark-300">Total Balance</p>
-              <p className="text-2xl font-bold text-dark-50">
-                ${financialHealth.totalBalance.toLocaleString()}
-              </p>
+          </div>
+
+          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-2 lg:p-3 rounded-xl shadow-md">
+                <Receipt className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+              </div>
+              <div>
+                <p className="text-xs lg:text-sm font-medium text-dark-300">Monthly Expenses</p>
+                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                  ${financialHealth.monthlyExpenses.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 lg:p-3 rounded-xl shadow-md">
+                <Percent className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+              </div>
+              <div>
+                <p className="text-xs lg:text-sm font-medium text-dark-300">Savings Rate</p>
+                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                  {financialHealth.savingsRate}%
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-3 rounded-xl shadow-md">
-              <Banknote className="text-white" size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-dark-300">Monthly Income</p>
-              <p className="text-2xl font-bold text-dark-50">
-                ${financialHealth.monthlyIncome.toLocaleString()}
-              </p>
-            </div>
-          </div>
+        {/* Smart Finance Tips */}
+        <div className="mb-8">
+          <SmartFinanceTips />
         </div>
 
-        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-3 rounded-xl shadow-md">
-              <Receipt className="text-white" size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-dark-300">Monthly Expenses</p>
-              <p className="text-2xl font-bold text-dark-50">
-                ${financialHealth.monthlyExpenses.toLocaleString()}
-              </p>
-            </div>
-          </div>
+        {/* Quick Add Transaction Form */}
+        <div className="mb-8">
+          <QuickTransactionForm onSuccess={fetchData} />
         </div>
 
-        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-xl shadow-md">
-              <Percent className="text-white" size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-dark-300">Savings Rate</p>
-              <p className="text-2xl font-bold text-dark-50">
-                {financialHealth.savingsRate}%
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <QuickTransactionForm onSuccess={fetchData} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-dark-800/50 p-6 rounded-2xl shadow-lg border border-dark-700">
+        {/* Recent Transactions */}
+        <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700 mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-dark-100">Recent Transactions</h2>
             <Link 
@@ -574,24 +417,24 @@ export default function Dashboard() {
             {transactions.length === 0 ? (
               <p className="text-dark-400 text-center py-4">No transactions yet</p>
             ) : (
-              transactions.map((transaction) => (
+              transactions.slice(0, 5).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 hover:bg-dark-700/50 rounded-xl transition-all duration-200 group">
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl transition-all duration-200 ${
+                    <div className={`p-2 lg:p-3 rounded-xl transition-all duration-200 ${
                       transaction.type === 'expense' 
                         ? 'bg-red-900/50 group-hover:bg-red-900/70' 
                         : 'bg-emerald-900/50 group-hover:bg-emerald-900/70'
                     }`}>
                       <DollarSign className={
                         transaction.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
-                      } size={20} />
+                      } size={16} />
                     </div>
                     <div>
                       <p className="font-medium text-dark-100">{transaction.categories?.name || 'Uncategorized'}</p>
                       {transaction.description && (
                         <p className="text-sm text-dark-400">{transaction.description}</p>
                       )}
-                      <p className="text-sm text-dark-400">
+                      <p className="text-xs text-dark-400">
                         {new Date(transaction.date).toLocaleDateString()}
                       </p>
                     </div>
@@ -606,54 +449,44 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        <div className="bg-dark-800/50 p-6 rounded-2xl shadow-lg border border-dark-700">
-          <h2 className="text-lg font-semibold text-dark-100 mb-6">Budget Overview</h2>
-          <div className="space-y-6">
-            {budgets.length === 0 ? (
-              <p className="text-dark-400 text-center py-4">No budgets set</p>
-            ) : (
-              budgets.map((budget) => {
-                const percentage = (budget.spent / budget.budget_limit) * 100;
-                return (
-                  <div key={budget.id} className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-dark-200">{budget.categories?.name}</span>
-                      <span className={`font-medium ${getBudgetTextColor(budget.spent, budget.budget_limit)}`}>
-                        ${Number(budget.spent).toLocaleString()} / ${Number(budget.budget_limit).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${getBudgetStatusColor(budget.spent, budget.budget_limit)} rounded-full transition-all duration-300`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-dark-400">Remaining</span>
-                      <span className={`font-medium ${getBudgetTextColor(budget.spent, budget.budget_limit)}`}>
-                        ${Math.max(budget.budget_limit - budget.spent, 0).toLocaleString()}
-                        {percentage > 100 && (
-                          <span className="text-red-400 ml-1">
-                            (Over by ${(budget.spent - budget.budget_limit).toLocaleString()})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
 
-      <TransactionForm
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddTransaction}
-        title="Add Transaction"
-      />
+      {/* Mobile Add Transaction Button */}
+      <div className="lg:hidden fixed bottom-20 right-4 z-50">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
+
+      {/* Modals */}
+      {isModalOpen && (
+        <TransactionForm
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={async (data) => {
+            if (!user) return;
+            try {
+              const { error } = await supabase
+                .from('transactions')
+                .insert([{
+                  user_id: user.id,
+                  ...data
+                }]);
+
+              if (error) throw error;
+
+              setIsModalOpen(false);
+              fetchData();
+            } catch (error) {
+              console.error('Error adding transaction:', error);
+            }
+          }}
+          title="Add Transaction"
+        />
+      )}
 
       {showAccountSettings && (
         <AccountSettings
@@ -664,3 +497,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
