@@ -9,6 +9,7 @@ type Tip = {
   message: string;
   type: 'success' | 'warning' | 'info';
   icon: React.ReactNode;
+  source: 'personal' | 'general';
 };
 
 type Budget = {
@@ -38,16 +39,47 @@ const generalTips = [
     message: 'Follow the 50/30/20 rule: 50% needs, 30% wants, 20% savings.',
     type: 'info',
     icon: <PiggyBank className="text-indigo-400" />
+  },
+  {
+    id: 'tip-4',
+    message: 'Review your subscriptions every few months — small charges add up fast.',
+    type: 'info',
+    icon: <Sparkles className="text-indigo-400" />
+  },
+  {
+    id: 'tip-5',
+    message: 'Build an emergency fund with at least 3 months of essential expenses.',
+    type: 'info',
+    icon: <PiggyBank className="text-indigo-400" />
+  },
+  {
+    id: 'tip-6',
+    message: 'Avoid lifestyle creep — when your income grows, grow your savings too.',
+    type: 'info',
+    icon: <TrendingUp className="text-indigo-400" />
+  },
+  {
+    id: 'tip-7',
+    message: 'Separate your needs from wants — it helps you prioritize smarter.',
+    type: 'info',
+    icon: <Target className="text-indigo-400" />
+  },
+  {
+    id: 'tip-8',
+    message: 'Automate savings each month so you pay yourself first, not last.',
+    type: 'info',
+    icon: <Sparkles className="text-indigo-400" />
   }
 ] as const;
 
 export default function SmartFinanceTips() {
   const { user } = useAuth();
-  const [tip, setTip] = useState<Tip | null>(null);
+  const [allTips, setAllTips] = useState<Tip[]>([]);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const generateTip = async () => {
+    const generateTips = async () => {
       if (!user) return;
 
       try {
@@ -83,10 +115,12 @@ export default function SmartFinanceTips() {
         const transactions = transactionsResponse.data || [];
         const budgets = (budgetsResponse.data || []) as Budget[];
 
-        // If user has no data, show general tips
+        // If user has no data, use general tips
         if (transactions.length === 0 || budgets.length === 0) {
-          const randomTip = generalTips[Math.floor(Math.random() * generalTips.length)];
-          setTip(randomTip);
+          const shuffledTips = [...generalTips]
+            .sort(() => Math.random() - 0.5)
+            .map(tip => ({ ...tip, source: 'general' as const }));
+          setAllTips(shuffledTips);
           return;
         }
 
@@ -103,7 +137,6 @@ export default function SmartFinanceTips() {
 
         // Compare with budgets
         budgets.forEach((budget) => {
-          // Skip if category name is missing
           if (!budget.categories?.name) return;
 
           const spent = categorySpending[budget.category_id] || 0;
@@ -114,14 +147,16 @@ export default function SmartFinanceTips() {
               id: `overspend-${budget.category_id}`,
               message: `You've spent ${spentPercentage.toFixed(0)}% of your ${budget.categories.name} budget. Consider reviewing your spending in this category.`,
               type: 'warning',
-              icon: <TrendingUp className="text-yellow-400" />
+              icon: <TrendingUp className="text-yellow-400" />,
+              source: 'personal'
             });
           } else if (spentPercentage < 50) {
             personalizedTips.push({
               id: `underspend-${budget.category_id}`,
               message: `Great job keeping ${budget.categories.name} expenses under control! You've only used ${spentPercentage.toFixed(0)}% of your budget.`,
               type: 'success',
-              icon: <Sparkles className="text-emerald-400" />
+              icon: <Sparkles className="text-emerald-400" />,
+              source: 'personal'
             });
           }
         });
@@ -144,36 +179,73 @@ export default function SmartFinanceTips() {
             id: 'savings-great',
             message: `Excellent work! Your savings rate of ${savingsRate.toFixed(1)}% is above the recommended 20%.`,
             type: 'success',
-            icon: <TrendingUp className="text-emerald-400" />
+            icon: <TrendingUp className="text-emerald-400" />,
+            source: 'personal'
           });
         } else if (savingsRate < 10) {
           personalizedTips.push({
             id: 'savings-low',
             message: 'Your savings rate is below 10%. Try identifying areas where you can reduce expenses.',
             type: 'warning',
-            icon: <TrendingDown className="text-yellow-400" />
+            icon: <TrendingDown className="text-yellow-400" />,
+            source: 'personal'
           });
         }
 
-        // Select a random personalized tip or fall back to general tips
-        const tipToShow = personalizedTips.length > 0
-          ? personalizedTips[Math.floor(Math.random() * personalizedTips.length)]
-          : generalTips[Math.floor(Math.random() * generalTips.length)];
+        // Shuffle both personal and general tips
+        const shuffledPersonalTips = personalizedTips.sort(() => Math.random() - 0.5);
+        const shuffledGeneralTips = [...generalTips]
+          .sort(() => Math.random() - 0.5)
+          .map(tip => ({ ...tip, source: 'general' as const }));
 
-        setTip(tipToShow);
+        // Interleave personal and general tips
+        const combinedTips: Tip[] = [];
+        const maxLength = Math.max(shuffledPersonalTips.length, shuffledGeneralTips.length);
+
+        for (let i = 0; i < maxLength; i++) {
+          // Add two personal tips if available
+          if (i < shuffledPersonalTips.length) {
+            combinedTips.push(shuffledPersonalTips[i]);
+          }
+          if (i + 1 < shuffledPersonalTips.length) {
+            combinedTips.push(shuffledPersonalTips[i + 1]);
+          }
+          // Add one general tip
+          if (i < shuffledGeneralTips.length) {
+            combinedTips.push(shuffledGeneralTips[i]);
+          }
+        }
+
+        setAllTips(combinedTips);
       } catch (error) {
-        console.error('Error generating finance tip:', error);
+        console.error('Error generating finance tips:', error);
         // Fall back to general tips on error
-        setTip(generalTips[Math.floor(Math.random() * generalTips.length)]);
+        const shuffledTips = [...generalTips]
+          .sort(() => Math.random() - 0.5)
+          .map(tip => ({ ...tip, source: 'general' as const }));
+        setAllTips(shuffledTips);
       } finally {
         setLoading(false);
       }
     };
 
-    generateTip();
+    generateTips();
   }, [user]);
 
-  if (loading || !tip) return null;
+  // Rotate tips every 10 seconds
+  useEffect(() => {
+    if (allTips.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentTipIndex(current => (current + 1) % allTips.length);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [allTips.length]);
+
+  if (loading || allTips.length === 0) return null;
+
+  const currentTip = allTips[currentTipIndex];
 
   return (
     <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
@@ -182,16 +254,24 @@ export default function SmartFinanceTips() {
           <Lightbulb className="text-indigo-400 w-5 h-5 lg:w-6 lg:h-6" />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-dark-50 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-dark-50 mb-4">
             Smart Finance Tips
           </h2>
-          <p className={`mt-2 text-sm ${
-            tip.type === 'success' ? 'text-emerald-400' :
-            tip.type === 'warning' ? 'text-yellow-400' :
-            'text-dark-200'
-          }`}>
-            {tip.message}
-          </p>
+          <div 
+            className={`p-3 rounded-lg ${
+              currentTip.type === 'success' ? 'bg-emerald-900/20 border border-emerald-900/30' :
+              currentTip.type === 'warning' ? 'bg-yellow-900/20 border border-yellow-900/30' :
+              'bg-dark-700/20 border border-dark-600'
+            }`}
+          >
+            <p className={`text-sm ${
+              currentTip.type === 'success' ? 'text-emerald-400' :
+              currentTip.type === 'warning' ? 'text-yellow-400' :
+              'text-dark-200'
+            }`}>
+              {currentTip.message}
+            </p>
+          </div>
           <Link 
             to="/reports" 
             className="mt-4 inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"

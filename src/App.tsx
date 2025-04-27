@@ -18,6 +18,8 @@ import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import OnboardingSetup from './pages/OnboardingSetup';
+import VerifyEmail from './pages/VerifyEmail';
+import VerifyEmailReminder from './pages/VerifyEmailReminder';
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-email-reminder" element={<VerifyEmailReminder />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/expense-types" element={<ExpenseTypes />} />

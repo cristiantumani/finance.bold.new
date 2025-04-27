@@ -7,7 +7,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [hasCategories, setHasCategories] = useState<boolean | null>(null);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const location = useLocation();
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) return;
+
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        setIsVerified(!!currentUser?.email_confirmed_at);
+      } catch (error) {
+        console.error('Error checking verification status:', error);
+      }
+    };
+
+    checkVerification();
+  }, [user]);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -50,7 +66,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [user, location.pathname]);
 
   if (!user) {
-    console.log('No user found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
@@ -60,6 +75,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
+  }
+
+  if (!isVerified) {
+    return <Navigate to="/verify-email-reminder" replace />;
   }
 
   // If we have determined there are no categories and we're not already on the onboarding page
