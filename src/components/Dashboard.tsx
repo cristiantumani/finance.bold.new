@@ -158,7 +158,7 @@ function Dashboard() {
     <div className="relative min-h-screen pb-24">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700 z-40">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between px-6 py-4">
           <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             Financial Dashboard
           </h1>
@@ -173,10 +173,10 @@ function Dashboard() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700">
-            <div className="p-4 space-y-4">
+            <div className="p-6 space-y-4">
               <Link 
                 to="/categories"
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <FolderOpen size={20} />
@@ -184,7 +184,7 @@ function Dashboard() {
               </Link>
               <Link 
                 to="/budgets"
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Calculator size={20} />
@@ -192,7 +192,7 @@ function Dashboard() {
               </Link>
               <Link 
                 to="/reports"
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <BarChart size={20} />
@@ -200,7 +200,7 @@ function Dashboard() {
               </Link>
               <Link 
                 to="/upload"
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Upload size={20} />
@@ -211,14 +211,14 @@ function Dashboard() {
                   setShowAccountSettings(true);
                   setIsMobileMenuOpen(false);
                 }}
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-dark-100 rounded-xl hover:bg-dark-700 transition-all"
               >
                 <Settings size={20} />
                 <span>Settings</span>
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-2 w-full p-3 bg-dark-800 text-red-400 rounded-xl hover:bg-dark-700 transition-all"
+                className="flex items-center gap-3 w-full p-4 bg-dark-800 text-red-400 rounded-xl hover:bg-dark-700 transition-all"
               >
                 <LogOut size={20} />
                 <span>Sign Out</span>
@@ -229,12 +229,12 @@ function Dashboard() {
       </div>
 
       {/* Desktop Header */}
-      <div className="hidden lg:flex justify-between items-center mb-8">
+      <div className="hidden lg:flex justify-between items-center px-8 py-6 mb-8">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             Financial Dashboard
           </h1>
-          <div className="mt-2">
+          <div className="mt-3">
             <MonthSwitcher 
               selectedDate={selectedDate} 
               onChange={setSelectedDate} 
@@ -244,14 +244,14 @@ function Dashboard() {
         <div className="flex gap-4 items-center">
           <Link 
             to="/categories"
-            className="flex items-center gap-2 bg-dark-800 text-dark-100 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
+            className="flex items-center gap-3 bg-dark-800 text-dark-100 px-5 py-3 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
           >
             <FolderOpen size={20} />
             <span>Add Category</span>
           </Link>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
+            className="flex items-center gap-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-5 py-3 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <Plus size={20} />
             Add Transaction
@@ -259,7 +259,7 @@ function Dashboard() {
           <div className="relative">
             <button 
               onClick={handleMoreOptionsClick}
-              className="more-options-button flex items-center gap-2 bg-dark-800 text-dark-100 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
+              className="more-options-button flex items-center gap-3 bg-dark-800 text-dark-100 px-5 py-3 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-700 shadow-sm hover:shadow-md"
             >
               <Settings size={20} />
               <span>More Options</span>
@@ -268,7 +268,7 @@ function Dashboard() {
             
             {dropdownState.isOpen && (
               <div 
-                className="more-options-dropdown fixed w-56 bg-dark-800 rounded-xl shadow-xl border border-dark-700 py-2 z-50 overflow-hidden"
+                className="more-options-dropdown fixed w-64 bg-dark-800 rounded-xl shadow-xl border border-dark-700 py-2 z-50 overflow-hidden"
                 style={{
                   top: `${dropdownState.position.top}px`,
                   left: `${dropdownState.position.left}px`
@@ -276,7 +276,7 @@ function Dashboard() {
               >
                 <Link 
                   to="/upload"
-                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
                 >
                   <Upload size={18} />
@@ -284,7 +284,7 @@ function Dashboard() {
                 </Link>
                 <Link 
                   to="/budgets"
-                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
                 >
                   <Calculator size={18} />
@@ -292,7 +292,7 @@ function Dashboard() {
                 </Link>
                 <Link 
                   to="/reports"
-                  className="flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
                 >
                   <BarChart size={18} />
@@ -303,7 +303,7 @@ function Dashboard() {
                     setShowAccountSettings(true);
                     setDropdownState(prev => ({ ...prev, isOpen: false }));
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-dark-100 hover:bg-dark-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
                 >
                   <Settings size={18} />
                   <span>Account Settings</span>
@@ -311,7 +311,7 @@ function Dashboard() {
                 <div className="border-t border-dark-700 my-2" />
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-dark-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-5 py-3 text-red-400 hover:bg-dark-700 transition-colors"
                 >
                   <LogOut size={18} />
                   <span>Sign Out</span>
@@ -323,7 +323,7 @@ function Dashboard() {
       </div>
 
       {/* Mobile Month Switcher */}
-      <div className="lg:hidden sticky top-16 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700 z-30 p-4">
+      <div className="lg:hidden sticky top-16 bg-dark-900/95 backdrop-blur-lg border-b border-dark-700 z-30 px-6 py-4">
         <MonthSwitcher 
           selectedDate={selectedDate} 
           onChange={setSelectedDate} 
@@ -331,59 +331,59 @@ function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 lg:pt-0">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-24 lg:pt-0">
         {/* Financial Overview Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-2 lg:p-3 rounded-xl shadow-md">
-                <CircleDollarSign className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-xl shadow-md">
+                <CircleDollarSign className="text-white w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs lg:text-sm font-medium text-dark-300">Total Balance</p>
-                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                <p className="text-sm font-medium text-dark-300">Total Balance</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${financialHealth.totalBalance.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-2 lg:p-3 rounded-xl shadow-md">
-                <Wallet className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-3 rounded-xl shadow-md">
+                <Wallet className="text-white w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs lg:text-sm font-medium text-dark-300">Monthly Income</p>
-                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                <p className="text-sm font-medium text-dark-300">Monthly Income</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${financialHealth.monthlyIncome.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-2 lg:p-3 rounded-xl shadow-md">
-                <Receipt className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-rose-500 to-pink-500 p-3 rounded-xl shadow-md">
+                <Receipt className="text-white w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs lg:text-sm font-medium text-dark-300">Monthly Expenses</p>
-                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                <p className="text-sm font-medium text-dark-300">Monthly Expenses</p>
+                <p className="text-2xl font-bold text-dark-50">
                   ${financialHealth.monthlyExpenses.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 lg:p-3 rounded-xl shadow-md">
-                <Percent className="text-white w-4 h-4 lg:w-6 lg:h-6" />
+          <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-xl shadow-md">
+                <Percent className="text-white w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs lg:text-sm font-medium text-dark-300">Savings Rate</p>
-                <p className="text-lg lg:text-2xl font-bold text-dark-50">
+                <p className="text-sm font-medium text-dark-300">Savings Rate</p>
+                <p className="text-2xl font-bold text-dark-50">
                   {financialHealth.savingsRate}%
                 </p>
               </div>
@@ -402,7 +402,7 @@ function Dashboard() {
         </div>
 
         {/* Recent Transactions */}
-        <div className="bg-dark-800/50 backdrop-blur-xl p-4 lg:p-6 rounded-2xl shadow-lg border border-dark-700 mb-8">
+        <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700 mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-dark-100">Recent Transactions</h2>
             <Link 
@@ -420,7 +420,7 @@ function Dashboard() {
               transactions.slice(0, 5).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 hover:bg-dark-700/50 rounded-xl transition-all duration-200 group">
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 lg:p-3 rounded-xl transition-all duration-200 ${
+                    <div className={`p-3 rounded-xl transition-all duration-200 ${
                       transaction.type === 'expense' 
                         ? 'bg-red-900/50 group-hover:bg-red-900/70' 
                         : 'bg-emerald-900/50 group-hover:bg-emerald-900/70'
