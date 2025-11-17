@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  DollarSign, 
   Plus, 
   Search,
   Edit2,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Filter,
   Upload,
   ArrowUpDown,
   ArrowUp,
@@ -36,6 +34,12 @@ type SortConfig = {
   direction: SortDirection;
 };
 
+type FilterConfig = {
+  month: string;
+  type: 'all' | 'income' | 'expense';
+  category: string;
+};
+
 export default function Transactions() {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
@@ -45,11 +49,33 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [sort, setSort] = useState<SortConfig>({ field: 'date', direction: 'desc' });
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [filters, setFilters] = useState<FilterConfig>({
+    month: new Date().toISOString().slice(0, 7),
+    type: 'all',
+    category: 'all'
+  });
   const itemsPerPage = 10;
+
+  const fetchCategories = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchTransactions = async () => {
     if (!user) return;
@@ -65,36 +91,40 @@ export default function Transactions() {
         `, { count: 'exact' })
         .eq('user_id', user.id);
 
-      // Apply filters
-      if (filter !== 'all') {
-        query = query.eq('type', filter);
+      // Apply month filter
+      if (filters.month) {
+        const startDate = `${filters.month}-01`;
+        const endDate = new Date(filters.month.split('-')[0], parseInt(filters.month.split('-')[1]), 0)
+          .toISOString()
+          .split('T')[0];
+        
+        query = query
+          .gte('date', startDate)
+          .lte('date', endDate);
       }
 
+      // Apply type filter
+      if (filters.type !== 'all') {
+        query = query.eq('type', filters.type);
+      }
+
+      // Apply category filter
+      if (filters.category !== 'all') {
+        query = query.eq('category_id', filters.category);
+      }
+
+      // Apply search - Fixed the query syntax for the or condition
       if (searchTerm) {
-        query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`);
+        query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`.split(','));
       }
 
       // Apply sorting
       if (sort.field === 'category') {
-        // For category sorting, we need to join with categories table
         query = query.order('categories(name)', { ascending: sort.direction === 'asc' });
       } else {
-        // For other fields, sort directly
-        switch (sort.field) {
-          case 'date':
-            query = query.order('date', { ascending: sort.direction === 'asc' });
-            // Add created_at as secondary sort to maintain consistent order for same-date entries
-            query = query.order('created_at', { ascending: sort.direction === 'asc' });
-            break;
-          case 'type':
-            query = query.order('type', { ascending: sort.direction === 'asc' });
-            break;
-          case 'description':
-            query = query.order('description', { ascending: sort.direction === 'asc' });
-            break;
-          case 'amount':
-            query = query.order('amount', { ascending: sort.direction === 'asc' });
-            break;
+        query = query.order(sort.field, { ascending: sort.direction === 'asc' });
+        if (sort.field === 'date') {
+          query = query.order('created_at', { ascending: sort.direction === 'asc' });
         }
       }
 
@@ -116,8 +146,12 @@ export default function Transactions() {
   };
 
   useEffect(() => {
+    fetchCategories();
+  }, [user]);
+
+  useEffect(() => {
     fetchTransactions();
-  }, [user, currentPage, searchTerm, filter, sort]);
+  }, [user, currentPage, searchTerm, filters, sort]);
 
   useEffect(() => {
     const fetchAvailableMonths = async () => {
@@ -132,9 +166,8 @@ export default function Transactions() {
 
         if (error) throw error;
 
-        // Extract unique months from transaction dates
         const months = new Set(
-          data.map(t => t.date.substring(0, 7)) // Get YYYY-MM from date
+          data.map(t => t.date.substring(0, 7))
         );
 
         setAvailableMonths(Array.from(months));
@@ -151,7 +184,7 @@ export default function Transactions() {
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-    setCurrentPage(1); // Reset to first page when sorting changes
+    setCurrentPage(1);
   };
 
   const renderSortHeader = (field: SortField, label: string) => {
@@ -260,7 +293,6 @@ export default function Transactions() {
         .eq('user_id', user.id);
 
       if (month) {
-        // If month is provided (format: YYYY-MM), filter by that month
         const startDate = `${month}-01`;
         const endDate = new Date(month.split('-')[0], parseInt(month.split('-')[1]), 0)
           .toISOString()
@@ -275,7 +307,6 @@ export default function Transactions() {
 
       if (error) throw error;
 
-      // Transform data for export
       const exportData = data.map(transaction => ({
         Date: new Date(transaction.date).toLocaleDateString(),
         Type: transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1),
@@ -284,17 +315,14 @@ export default function Transactions() {
         Description: transaction.description || ''
       }));
 
-      // Create workbook and worksheet
       const ws = utils.json_to_sheet(exportData);
       const wb = utils.book_new();
       utils.book_append_sheet(wb, ws, 'Transactions');
 
-      // Generate filename
       const filename = month 
         ? `transactions_${month}.xlsx`
         : 'all_transactions.xlsx';
 
-      // Download file
       writeFile(wb, filename);
     } catch (error) {
       console.error('Error downloading transactions:', error);
@@ -371,7 +399,7 @@ export default function Transactions() {
             className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-indigo-600"
           >
             <Upload size={20} />
-            Import Transactions
+            Import
           </Link>
           <button 
             onClick={() => setIsAddModalOpen(true)}
@@ -383,36 +411,65 @@ export default function Transactions() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className="bg-dark-800 rounded-xl shadow-sm border border-dark-700 overflow-hidden">
+        <div className="p-4 border-b border-dark-700">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-400" size={20} />
               <input
                 type="text"
                 placeholder="Search transactions..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset to first page when search changes
+                  setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-10 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-lg text-dark-100 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div className="flex items-center gap-4">
-              <Filter size={20} className="text-gray-400" />
-              <select
-                value={filter}
-                onChange={(e) => {
-                  setFilter(e.target.value as 'all' | 'income' | 'expense');
-                  setCurrentPage(1); // Reset to first page when filter changes
-                }}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="all">All</option>
-                <option value="income">Income</option>
-                <option value="expense">Expenses</option>
-              </select>
+              <div className="flex items-center gap-4">
+                <select
+                  value={filters.month}
+                  onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
+                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  {availableMonths.map(month => (
+                    <option key={month} value={month}>
+                      {new Date(month + '-01').toLocaleDateString('default', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.type}
+                  onChange={(e) => setFilters(prev => ({ 
+                    ...prev, 
+                    type: e.target.value as 'all' | 'income' | 'expense'
+                  }))}
+                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="all">All Types</option>
+                  <option value="income">Income</option>
+                  <option value="expense">Expenses</option>
+                </select>
+
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -420,51 +477,51 @@ export default function Transactions() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-dark-900/50">
                 {renderSortHeader('date', 'Date')}
                 {renderSortHeader('type', 'Type')}
                 {renderSortHeader('category', 'Category')}
                 {renderSortHeader('description', 'Description')}
                 {renderSortHeader('amount', 'Amount')}
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-dark-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-dark-800 divide-y divide-dark-700">
               {transactions.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <tr key={transaction.id} className="hover:bg-dark-700/50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-300">
                     {new Date(transaction.date).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      transaction.type === 'income' ? 'bg-emerald-900/20 text-emerald-400' : 'bg-red-900/20 text-red-400'
                     }`}>
                       {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
                     {transaction.categories?.name || 'Uncategorized'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-300">
                     {transaction.description}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                    <span className={transaction.type === 'income' ? 'text-emerald-400' : 'text-red-400'}>
                       {transaction.type === 'income' ? '+' : '-'}${Number(transaction.amount).toLocaleString()}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => setEditingTransaction(transaction)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      className="text-indigo-400 hover:text-indigo-300 mr-4"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleDeleteTransaction(transaction.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-400 hover:text-red-300"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -473,7 +530,7 @@ export default function Transactions() {
               ))}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-dark-400">
                     No transactions found
                   </td>
                 </tr>
@@ -483,22 +540,22 @@ export default function Transactions() {
         </div>
 
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-dark-700 flex items-center justify-between">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-1 rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1 rounded-md text-sm text-dark-200 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={16} />
               Previous
             </button>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-dark-300">
               Page {currentPage} of {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-3 py-1 rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1 rounded-md text-sm text-dark-200 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight size={16} />

@@ -13,7 +13,6 @@ import Categories from './pages/Categories';
 import ExpenseTypes from './pages/ExpenseTypes';
 import Budgets from './pages/Budgets';
 import Reports from './pages/Reports';
-import TransactionUpload from './pages/TransactionUpload';
 import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -53,11 +52,6 @@ function App() {
             <Route path="/reports" element={
               <AuthGuard>
                 <Reports />
-              </AuthGuard>
-            } />
-            <Route path="/upload" element={
-              <AuthGuard>
-                <TransactionUpload />
               </AuthGuard>
             } />
             <Route path="/dashboard" element={

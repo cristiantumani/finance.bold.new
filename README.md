@@ -1,11 +1,23 @@
 # finance.bold.new
 
-## Feel free to delete this file and replace it with your own content.
+This project was created and pushed to GitHub using [Bolt to GitHub](https://github.com/mamertofabian/bolt-to-github) Chrome Extension.
 
-## Repository Initialization Notice
+## Description
 
-This repository was automatically initialized by the Bolt to GitHub extension.
+[Add your project description here]
 
-**Auto-Generated Repository**
-- Created to ensure a valid Git repository structure
-- Serves as an initial commit point for your project
+## Installation
+
+[Add installation instructions here]
+
+## Usage
+
+[Add usage instructions here]
+
+## Contributing
+
+[Add contribution guidelines here]
+
+## License
+
+[Add license information here]
