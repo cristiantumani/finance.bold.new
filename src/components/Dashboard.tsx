@@ -275,14 +275,6 @@ function Dashboard() {
                 }}
               >
                 <Link 
-                  to="/upload"
-                  className="flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
-                  onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
-                >
-                  <Upload size={18} />
-                  <span>Import Transactions</span>
-                </Link>
-                <Link 
                   to="/budgets"
                   className="flex items-center gap-3 px-5 py-3 text-dark-100 hover:bg-dark-700 transition-colors"
                   onClick={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
