@@ -14,10 +14,18 @@ type CategoryFormData = {
   };
 };
 
+type Category = {
+  id: string;
+  name: string;
+  expense_type: string;
+  income_category: boolean;
+};
+
 type StepByStepCategoryFormProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CategoryFormData) => Promise<void>;
+  editingCategory?: Category | null;
 };
 
 const expenseTypeInfo = {
@@ -41,7 +49,7 @@ const expenseTypeInfo = {
   }
 };
 
-export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: StepByStepCategoryFormProps) {
+export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit, editingCategory }: StepByStepCategoryFormProps) {
   const [currentStep, setCurrentStep] = useState<Step>('type');
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
@@ -51,7 +59,31 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
   });
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (editingCategory) {
+      setFormData({
+        name: editingCategory.name,
+        expense_type: editingCategory.expense_type as ExpenseType,
+        income_category: editingCategory.income_category,
+        budget: undefined
+      });
+      setCurrentStep('name');
+    } else {
+      setFormData({
+        name: '',
+        expense_type: null,
+        income_category: false,
+        budget: undefined
+      });
+      setCurrentStep('type');
+    }
+  }, [isOpen, editingCategory]);
+
   const handleNext = () => {
+    if (editingCategory) {
+      handleSubmit();
+      return;
+    }
     switch (currentStep) {
       case 'type':
         setCurrentStep('name');
@@ -70,6 +102,10 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
   };
 
   const handleBack = () => {
+    if (editingCategory) {
+      onClose();
+      return;
+    }
     switch (currentStep) {
       case 'name':
         setCurrentStep('type');
@@ -134,8 +170,10 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-dark-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-dark-700">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-dark-50">Add Category</h2>
-          <button 
+          <h2 className="text-xl font-semibold text-dark-50">
+            {editingCategory ? 'Edit Category' : 'Add Category'}
+          </h2>
+          <button
             onClick={onClose}
             className="text-dark-400 hover:text-dark-200 transition-colors"
           >
@@ -143,46 +181,46 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
           </button>
         </div>
 
-        {/* Progress Steps */}
-        <div className="relative mb-8">
-          <div className="absolute top-2 flex w-full justify-between">
-            <div className={`w-3 h-3 rounded-full ${
-              ['type', 'name', 'expense-type', 'budget'].indexOf(currentStep) >= 0
-                ? 'bg-indigo-600'
-                : 'bg-dark-700'
-            }`} />
-            <div className={`w-3 h-3 rounded-full ${
-              ['name', 'expense-type', 'budget'].indexOf(currentStep) >= 0
-                ? 'bg-indigo-600'
-                : 'bg-dark-700'
-            }`} />
-            <div className={`w-3 h-3 rounded-full ${
-              ['expense-type', 'budget'].indexOf(currentStep) >= 0
-                ? 'bg-indigo-600'
-                : 'bg-dark-700'
-            }`} />
-            <div className={`w-3 h-3 rounded-full ${
-              ['budget'].indexOf(currentStep) >= 0
-                ? 'bg-indigo-600'
-                : 'bg-dark-700'
-            }`} />
+        {!editingCategory && (
+          <div className="relative mb-8">
+            <div className="absolute top-2 flex w-full justify-between">
+              <div className={`w-3 h-3 rounded-full ${
+                ['type', 'name', 'expense-type', 'budget'].indexOf(currentStep) >= 0
+                  ? 'bg-indigo-600'
+                  : 'bg-dark-700'
+              }`} />
+              <div className={`w-3 h-3 rounded-full ${
+                ['name', 'expense-type', 'budget'].indexOf(currentStep) >= 0
+                  ? 'bg-indigo-600'
+                  : 'bg-dark-700'
+              }`} />
+              <div className={`w-3 h-3 rounded-full ${
+                ['expense-type', 'budget'].indexOf(currentStep) >= 0
+                  ? 'bg-indigo-600'
+                  : 'bg-dark-700'
+              }`} />
+              <div className={`w-3 h-3 rounded-full ${
+                ['budget'].indexOf(currentStep) >= 0
+                  ? 'bg-indigo-600'
+                  : 'bg-dark-700'
+              }`} />
+            </div>
+            <div className="absolute top-3 left-0 w-full">
+              <div
+                className="h-1 bg-indigo-600 transition-all duration-300"
+                style={{
+                  width: `${
+                    ((['type', 'name', 'expense-type', 'budget'].indexOf(currentStep) + 1) / 4) * 100
+                  }%`
+                }}
+              />
+            </div>
+            <div className="h-1 w-full bg-dark-700" />
           </div>
-          <div className="absolute top-3 left-0 w-full">
-            <div
-              className="h-1 bg-indigo-600 transition-all duration-300"
-              style={{
-                width: `${
-                  ((['type', 'name', 'expense-type', 'budget'].indexOf(currentStep) + 1) / 4) * 100
-                }%`
-              }}
-            />
-          </div>
-          <div className="h-1 w-full bg-dark-700" />
-        </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: Category Type */}
-          {currentStep === 'type' && (
+          {!editingCategory && currentStep === 'type' && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-dark-50">What type of category is this?</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -224,7 +262,6 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
             </div>
           )}
 
-          {/* Step 2: Category Name */}
           {currentStep === 'name' && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-dark-50">
@@ -241,8 +278,7 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
             </div>
           )}
 
-          {/* Step 3: Expense Type (Optional) */}
-          {currentStep === 'expense-type' && (
+          {!editingCategory && currentStep === 'expense-type' && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium text-dark-50">
@@ -289,8 +325,7 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
             </div>
           )}
 
-          {/* Step 4: Budget (Optional) */}
-          {currentStep === 'budget' && (
+          {!editingCategory && currentStep === 'budget' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
@@ -358,39 +393,60 @@ export default function StepByStepCategoryForm({ isOpen, onClose, onSubmit }: St
             </div>
           )}
 
-          {/* Navigation Buttons */}
           <div className="flex justify-between pt-6">
-            {currentStep !== 'type' ? (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="flex items-center gap-2 px-4 py-2 text-dark-200 hover:text-dark-100 transition-colors"
-              >
-                <ArrowLeft size={16} />
-                Back
-              </button>
+            {editingCategory ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex items-center gap-2 px-4 py-2 text-dark-200 hover:text-dark-100 transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </>
             ) : (
-              <div></div>
-            )}
+              <>
+                {currentStep !== 'type' ? (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="flex items-center gap-2 px-4 py-2 text-dark-200 hover:text-dark-100 transition-colors"
+                  >
+                    <ArrowLeft size={16} />
+                    Back
+                  </button>
+                ) : (
+                  <div></div>
+                )}
 
-            {currentStep === 'budget' ? (
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
-              >
-                {loading ? 'Creating...' : 'Create Category'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={!isStepValid()}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
-              >
-                Next
-                <ArrowRight size={16} />
-              </button>
+                {currentStep === 'budget' ? (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
+                  >
+                    {loading ? 'Creating...' : 'Create Category'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={!isStepValid()}
+                    className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
+                  >
+                    Next
+                    <ArrowRight size={16} />
+                  </button>
+                )}
+              </>
             )}
           </div>
         </form>

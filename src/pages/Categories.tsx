@@ -82,36 +82,52 @@ export default function Categories() {
     if (!user) return;
 
     try {
-      // First create the category
-      const { data: category, error: categoryError } = await supabase
-        .from('categories')
-        .insert([{
-          user_id: user.id,
-          name: formData.name,
-          expense_type: formData.expense_type,
-          income_category: formData.income_category
-        }])
-        .select()
-        .single();
+      if (editingCategory) {
+        // Update existing category
+        const { error: categoryError } = await supabase
+          .from('categories')
+          .update({
+            name: formData.name,
+            expense_type: formData.expense_type,
+            income_category: formData.income_category
+          })
+          .eq('id', editingCategory.id)
+          .eq('user_id', user.id);
 
-      if (categoryError) throw categoryError;
-
-      // If budget is included, create it
-      if (formData.budget?.limit && category) {
-        const { error: budgetError } = await supabase
-          .from('budgets')
+        if (categoryError) throw categoryError;
+      } else {
+        // Create new category
+        const { data: category, error: categoryError } = await supabase
+          .from('categories')
           .insert([{
             user_id: user.id,
-            category_id: category.id,
-            budget_limit: Number(formData.budget.limit),
-            period: formData.budget.period,
-            spent: 0
-          }]);
+            name: formData.name,
+            expense_type: formData.expense_type,
+            income_category: formData.income_category
+          }])
+          .select()
+          .single();
 
-        if (budgetError) throw budgetError;
+        if (categoryError) throw categoryError;
+
+        // If budget is included, create it
+        if (formData.budget?.limit && category) {
+          const { error: budgetError } = await supabase
+            .from('budgets')
+            .insert([{
+              user_id: user.id,
+              category_id: category.id,
+              budget_limit: Number(formData.budget.limit),
+              period: formData.budget.period,
+              spent: 0
+            }]);
+
+          if (budgetError) throw budgetError;
+        }
       }
 
       setIsModalOpen(false);
+      setEditingCategory(null);
       fetchCategories();
     } catch (error) {
       console.error('Error saving category:', error);
@@ -161,8 +177,11 @@ export default function Categories() {
               Categories
             </h1>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
+          <button
+            onClick={() => {
+              setEditingCategory(null);
+              setIsModalOpen(true);
+            }}
             className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <Plus size={20} />
@@ -198,6 +217,15 @@ export default function Categories() {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => {
+                      setEditingCategory(category);
+                      setIsModalOpen(true);
+                    }}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
                     onClick={() => handleDelete(category.id)}
                     className="text-red-400 hover:text-red-300 transition-colors"
                   >
@@ -215,7 +243,10 @@ export default function Categories() {
               <p className="mt-1 text-dark-400">Get started by adding a new category.</p>
               <div className="mt-6">
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setIsModalOpen(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Plus className="-ml-1 mr-2 h-5 w-5" />
@@ -229,8 +260,12 @@ export default function Categories() {
 
       <StepByStepCategoryForm
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingCategory(null);
+        }}
         onSubmit={handleSubmit}
+        editingCategory={editingCategory}
       />
     </div>
   );
