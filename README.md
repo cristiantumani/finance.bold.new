@@ -108,16 +108,16 @@ The build settings are already configured in `netlify.toml`.
 1. Go to [Cloudflare Pages](https://pages.cloudflare.com)
 2. Connect your GitHub repository
 3. Build settings:
-   - Framework preset: **None**
+   - Framework preset: **None** or **Vite**
    - Build command: `npm run build`
    - Build output directory: `dist`
-   - **Remove any deploy command** (leave empty - the `wrangler.toml` file handles deployment)
-4. Add environment variables:
+   - Deploy command: Leave with default or try `echo "Build complete"`
+4. Add environment variables (in Settings → Environment variables):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
 5. Deploy!
 
-**Note**: The project includes a `wrangler.toml` configuration file for Cloudflare Pages deployment.
+**Note**: Cloudflare Pages automatically handles deployment after building - no special deploy command needed.
 
 ## Supabase Setup
 
