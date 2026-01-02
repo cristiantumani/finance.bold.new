@@ -341,8 +341,8 @@ export default function Transactions() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
-          <Link to="/dashboard" className="text-indigo-600 hover:text-indigo-700 text-sm">
+          <h1 className="text-2xl font-bold text-dark-50">Transactions</h1>
+          <Link to="/dashboard" className="text-indigo-400 hover:text-indigo-300 text-sm">
             ← Back to Dashboard
           </Link>
         </div>
@@ -350,27 +350,27 @@ export default function Transactions() {
           <div className="relative">
             <button
               onClick={() => setShowDownloadOptions(!showDownloadOptions)}
-              className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+              className="flex items-center gap-2 bg-dark-800 text-dark-100 px-4 py-2 rounded-lg hover:bg-dark-700 transition-colors border border-dark-600"
             >
               <Download size={20} />
               Download
             </button>
 
             {showDownloadOptions && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+              <div className="absolute right-0 mt-2 w-64 bg-dark-800 rounded-lg shadow-lg border border-dark-600 py-2 z-50">
                 <button
                   onClick={() => {
                     handleDownload();
                     setShowDownloadOptions(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-dark-200 hover:bg-dark-700 flex items-center gap-2"
                 >
                   <Download size={16} />
                   Download All Transactions
                 </button>
-                <div className="border-t border-gray-100 my-2" />
+                <div className="border-t border-dark-600 my-2" />
                 <div className="px-4 py-1">
-                  <p className="text-xs font-medium text-gray-500">Download by Month</p>
+                  <p className="text-xs font-medium text-dark-400">Download by Month</p>
                 </div>
                 <div className="max-h-48 overflow-y-auto">
                   {availableMonths.map(month => (
@@ -380,12 +380,12 @@ export default function Transactions() {
                         handleDownload(month);
                         setShowDownloadOptions(false);
                       }}
-                      className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-dark-200 hover:bg-dark-700 flex items-center gap-2"
                     >
                       <Calendar size={16} />
-                      {new Date(month + '-01').toLocaleDateString('default', { 
-                        month: 'long', 
-                        year: 'numeric' 
+                      {new Date(month + '-01').toLocaleDateString('default', {
+                        month: 'long',
+                        year: 'numeric'
                       })}
                     </button>
                   ))}
@@ -394,14 +394,14 @@ export default function Transactions() {
             )}
           </div>
 
-          <Link 
+          <Link
             to="/upload"
-            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-indigo-600"
+            className="flex items-center gap-2 bg-dark-800 text-indigo-400 px-4 py-2 rounded-lg hover:bg-dark-700 transition-colors border border-indigo-500"
           >
             <Upload size={20} />
-            Import
+            Upload
           </Link>
-          <button 
+          <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
           >
