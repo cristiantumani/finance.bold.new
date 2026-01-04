@@ -24,7 +24,6 @@ import MonthSwitcher from './MonthSwitcher';
 import TransactionForm from './TransactionForm';
 import QuickTransactionForm from './QuickTransactionForm';
 import AccountSettings from './AccountSettings';
-import SmartFinanceTips from './SmartFinanceTips';
 import type { Transaction, Budget } from '../types/finance';
 
 type TransactionWithCategory = Transaction & {
@@ -381,11 +380,6 @@ function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Smart Finance Tips */}
-        <div className="mb-8">
-          <SmartFinanceTips />
         </div>
 
         {/* Quick Add Transaction Form */}
