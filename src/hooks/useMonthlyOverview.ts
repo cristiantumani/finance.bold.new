@@ -36,15 +36,22 @@ export function useMonthlyOverview(year: number) {
 
         if (txError) throw txError;
 
-        // Fetch all budgets for the year in ONE query
+        // Fetch all budgets for the user
         const { data: budgets, error: budgetError } = await supabase
           .from('budgets')
-          .select('month, amount')
-          .eq('user_id', user.id)
-          .gte('month', startDate)
-          .lte('month', endDate);
+          .select('budget_limit, period')
+          .eq('user_id', user.id);
 
         if (budgetError) throw budgetError;
+
+        // Calculate total monthly budget
+        let totalMonthlyBudget = 0;
+        budgets?.forEach(budget => {
+          // Only count monthly budgets for now
+          if (budget.period === 'monthly') {
+            totalMonthlyBudget += budget.budget_limit;
+          }
+        });
 
         // Process data efficiently in memory
         const monthlyDataMap = new Map<string, MonthlyData>();
@@ -56,7 +63,7 @@ export function useMonthlyOverview(year: number) {
             income: 0,
             expense: 0,
             savings: 0,
-            budget: 0,
+            budget: totalMonthlyBudget, // Same budget for all months
           });
         });
 
@@ -71,16 +78,6 @@ export function useMonthlyOverview(year: number) {
             } else {
               monthData.expense += tx.amount;
             }
-          }
-        });
-
-        // Add budget data
-        budgets?.forEach(budget => {
-          const month = budget.month.substring(0, 7);
-          const monthData = monthlyDataMap.get(month);
-
-          if (monthData) {
-            monthData.budget += budget.amount;
           }
         });
 
