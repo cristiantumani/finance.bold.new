@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import MonthlyOverview from '../components/MonthlyOverview';
 import CategoryBreakdown from '../components/CategoryBreakdown';
+import SpendingPace from '../components/SpendingPace';
 
 export default function Reports() {
   const currentYear = new Date().getFullYear();
@@ -97,6 +98,11 @@ export default function Reports() {
               </div>
             </div>
             <CategoryBreakdown year={selectedYear} month={selectedMonth} />
+          </section>
+
+          {/* Spending Pace */}
+          <section>
+            <SpendingPace year={selectedYear} month={selectedMonth} />
           </section>
         </div>
       </div>
