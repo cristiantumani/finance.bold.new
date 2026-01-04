@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import MonthlyOverview from '../components/MonthlyOverview';
 import CategoryBreakdown from '../components/CategoryBreakdown';
 import SpendingPace from '../components/SpendingPace';
@@ -36,13 +35,6 @@ export default function Reports() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link
-            to="/dashboard"
-            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-4"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Link>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-dark-50 mb-2">
