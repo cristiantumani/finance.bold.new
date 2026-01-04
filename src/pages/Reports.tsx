@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar } from 'lucide-react';
 import MonthlyOverview from '../components/MonthlyOverview';
 import CategoryBreakdown from '../components/CategoryBreakdown';
 import SpendingPace from '../components/SpendingPace';
+import BudgetPerformance from '../components/BudgetPerformance';
 
 export default function Reports() {
   const currentYear = new Date().getFullYear();
@@ -103,6 +104,11 @@ export default function Reports() {
           {/* Spending Pace */}
           <section>
             <SpendingPace year={selectedYear} month={selectedMonth} />
+          </section>
+
+          {/* Budget Performance */}
+          <section>
+            <BudgetPerformance year={selectedYear} month={selectedMonth} />
           </section>
         </div>
       </div>
