@@ -32,7 +32,8 @@ export function useMonthlyOverview(year: number) {
           .select('date, type, amount')
           .eq('user_id', user.id)
           .gte('date', startDate)
-          .lte('date', endDate);
+          .lte('date', endDate)
+          .limit(10000); // Increase limit to handle large datasets
 
         if (txError) throw txError;
 
