@@ -341,55 +341,55 @@ export default function TransactionUpload() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link 
-            to="/transactions" 
-            className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 mb-4"
+          <Link
+            to="/transactions"
+            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mb-4"
           >
             <ArrowLeft size={16} />
             Back to Transactions
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Upload Transactions</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-dark-50 mb-2">Upload Transactions</h1>
+          <p className="text-dark-300">
             Import your transactions from a CSV or Excel file.
           </p>
         </div>
 
         {!showPreview ? (
           <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Instructions</h2>
+            <div className="bg-dark-800 rounded-xl shadow-sm border border-dark-700 p-6 mb-8">
+              <h2 className="text-lg font-semibold text-dark-50 mb-4">Instructions</h2>
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-2">1. Prepare Your File</h3>
-                  <p className="text-gray-600 mb-2">
+                  <h3 className="font-medium text-dark-100 mb-2">1. Prepare Your File</h3>
+                  <p className="text-dark-300 mb-2">
                     Your file should have the following columns:
                   </p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <code className="text-sm">
+                  <div className="bg-dark-900 p-4 rounded-lg">
+                    <code className="text-sm text-dark-200">
                       date, type, category, amount, description (optional)
                     </code>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-2">2. Format Requirements</h3>
-                  <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <h3 className="font-medium text-dark-100 mb-2">2. Format Requirements</h3>
+                  <ul className="list-disc list-inside text-dark-300 space-y-1">
                     <li>Date: YYYY-MM-DD format (e.g., 2024-02-15)</li>
                     <li>Type: Either "income" or "expense"</li>
-                    <li>Category: Must match one of your existing categories</li>
+                    <li>Category: Any category name (will be created if it doesn't exist)</li>
                     <li>Amount: Positive number (e.g., 150.50)</li>
                     <li>Description: Optional text description</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-2">3. Download Template</h3>
+                  <h3 className="font-medium text-dark-100 mb-2">3. Download Template</h3>
                   <button
                     onClick={downloadTemplate}
-                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
+                    className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300"
                   >
                     <Download size={16} />
                     Download Template
@@ -398,7 +398,7 @@ export default function TransactionUpload() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-dark-800 rounded-xl shadow-sm border border-dark-700 p-6">
               <div className="mb-6">
                 <label className="block w-full cursor-pointer">
                   <input
@@ -407,12 +407,12 @@ export default function TransactionUpload() {
                     accept=".csv,.xlsx,.xls"
                     onChange={handleFileUpload}
                   />
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
-                    <FileSpreadsheet className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
+                  <div className="border-2 border-dashed border-dark-600 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
+                    <FileSpreadsheet className="mx-auto h-12 w-12 text-dark-400" />
+                    <p className="mt-2 text-sm text-dark-200">
                       Click to select or drag and drop your file here
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-dark-400">
                       Supported formats: CSV, XLSX
                     </p>
                   </div>
@@ -420,7 +420,7 @@ export default function TransactionUpload() {
               </div>
 
               {selectedFile && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-dark-300">
                   <FileSpreadsheet size={16} />
                   <span>{selectedFile.name}</span>
                 </div>
@@ -428,12 +428,12 @@ export default function TransactionUpload() {
 
               {errors.length > 0 && (
                 <div className="mt-6">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-red-800 font-medium mb-2">
+                  <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-300 font-medium mb-2">
                       <AlertCircle size={20} />
                       Validation Errors
                     </div>
-                    <ul className="space-y-1 text-sm text-red-700">
+                    <ul className="space-y-1 text-sm text-red-200">
                       {errors.map((error, index) => (
                         <li key={index}>
                           Row {error.row}, {error.column}: {error.message}
@@ -449,8 +449,8 @@ export default function TransactionUpload() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-800">Preview Transactions</h2>
-                <p className="text-sm text-gray-600">
+                <h2 className="text-lg font-semibold text-dark-50">Preview Transactions</h2>
+                <p className="text-sm text-dark-300">
                   Review the transactions before importing
                 </p>
               </div>
@@ -461,7 +461,7 @@ export default function TransactionUpload() {
                     setSelectedFile(null);
                     setParsedData([]);
                   }}
-                  className="text-gray-600 hover:text-gray-900"
+                  className="text-dark-300 hover:text-dark-100"
                 >
                   Cancel
                 </button>
@@ -485,52 +485,52 @@ export default function TransactionUpload() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-dark-800 rounded-lg border border-dark-700 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-dark-700">
+                  <thead className="bg-dark-900">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
                         Type
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
                         Description
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-dark-800 divide-y divide-dark-700">
                     {parsedData.map((transaction, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <tr key={index} className="hover:bg-dark-750">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-300">
                           {new Date(transaction.date).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.type === 'income' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
+                            transaction.type === 'income'
+                              ? 'bg-green-900 text-green-200'
+                              : 'bg-red-900 text-red-200'
                           }`}>
                             {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
                           {transaction.category_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                          <span className={transaction.type === 'income' ? 'text-green-400' : 'text-red-400'}>
                             {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-300">
                           {transaction.description}
                         </td>
                       </tr>
@@ -542,23 +542,23 @@ export default function TransactionUpload() {
 
             {uploadStatus !== 'idle' && (
               <div className={`mt-4 p-4 rounded-lg ${
-                uploadStatus === 'success' 
-                  ? 'bg-green-50 border border-green-200' 
-                  : 'bg-red-50 border border-red-200'
+                uploadStatus === 'success'
+                  ? 'bg-green-900/20 border border-green-700'
+                  : 'bg-red-900/20 border border-red-700'
               }`}>
                 <div className="flex items-center gap-2">
                   {uploadStatus === 'success' ? (
-                    <CheckCircle2 className="text-green-600" size={20} />
+                    <CheckCircle2 className="text-green-400" size={20} />
                   ) : (
-                    <XCircle className="text-red-600" size={20} />
+                    <XCircle className="text-red-400" size={20} />
                   )}
                   <div>
                     <p className={`font-medium ${
-                      uploadStatus === 'success' ? 'text-green-800' : 'text-red-800'
+                      uploadStatus === 'success' ? 'text-green-300' : 'text-red-300'
                     }`}>
                       Upload {uploadStatus === 'success' ? 'Complete' : 'Completed with Errors'}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-dark-300">
                       {uploadStats.success} successful, {uploadStats.failed} failed
                     </p>
                   </div>
