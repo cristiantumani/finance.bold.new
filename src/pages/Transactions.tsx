@@ -113,14 +113,15 @@ export default function Transactions() {
         query = query.eq('category_id', filters.category);
       }
 
-      // Apply search - Fixed the query syntax for the or condition
+      // Apply search
       if (searchTerm) {
-        query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`.split(','));
+        query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`);
       }
 
       // Apply sorting
       if (sort.field === 'category') {
-        query = query.order('categories(name)', { ascending: sort.direction === 'asc' });
+        // Sort by category name (from the joined table)
+        query = query.order('category_id', { ascending: sort.direction === 'asc' });
       } else {
         query = query.order(sort.field, { ascending: sort.direction === 'asc' });
         if (sort.field === 'date') {
