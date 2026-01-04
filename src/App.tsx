@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
+import Layout from './components/Layout';
 import Footer from './components/Footer';
 import Feedback from './components/Feedback';
 import Dashboard from './components/Dashboard';
@@ -46,32 +47,44 @@ function App() {
             } />
             <Route path="/categories" element={
               <AuthGuard>
-                <Categories />
+                <Layout>
+                  <Categories />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/budgets" element={
               <AuthGuard>
-                <Budgets />
+                <Layout>
+                  <Budgets />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/reports" element={
               <AuthGuard>
-                <Reports />
+                <Layout>
+                  <Reports />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/upload" element={
               <AuthGuard>
-                <TransactionUpload />
+                <Layout>
+                  <TransactionUpload />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/dashboard" element={
               <AuthGuard>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/transactions" element={
               <AuthGuard>
-                <Transactions />
+                <Layout>
+                  <Transactions />
+                </Layout>
               </AuthGuard>
             } />
             <Route path="/docs" element={<Documentation />} />
