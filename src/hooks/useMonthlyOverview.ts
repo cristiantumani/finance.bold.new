@@ -36,34 +36,39 @@ export function useMonthlyOverview(year: number) {
 
         if (txError) throw txError;
 
-        // Fetch all budgets for the user
+        // Fetch all budgets for the user (including month-specific budgets)
         const { data: budgets, error: budgetError } = await supabase
           .from('budgets')
-          .select('budget_limit, period')
+          .select('budget_limit, period, month')
           .eq('user_id', user.id);
 
         if (budgetError) throw budgetError;
-
-        // Calculate total monthly budget
-        let totalMonthlyBudget = 0;
-        budgets?.forEach(budget => {
-          // Only count monthly budgets for now
-          if (budget.period === 'monthly') {
-            totalMonthlyBudget += budget.budget_limit;
-          }
-        });
 
         // Process data efficiently in memory
         const monthlyDataMap = new Map<string, MonthlyData>();
 
         // Initialize all months
         months.forEach(month => {
+          // Calculate budget for this specific month
+          let monthBudget = 0;
+
+          budgets?.forEach(budget => {
+            // Only count monthly budgets
+            if (budget.period === 'monthly') {
+              // If budget has a specific month, only apply it to that month
+              // If budget.month is null, apply it to all months (backward compatibility)
+              if (budget.month === month || budget.month === null) {
+                monthBudget += budget.budget_limit;
+              }
+            }
+          });
+
           monthlyDataMap.set(month, {
             month,
             income: 0,
             expense: 0,
             savings: 0,
-            budget: totalMonthlyBudget, // Same budget for all months
+            budget: monthBudget,
           });
         });
 
