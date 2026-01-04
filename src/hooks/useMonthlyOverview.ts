@@ -36,6 +36,11 @@ export function useMonthlyOverview(year: number) {
 
         if (txError) throw txError;
 
+        console.log('=== Monthly Overview Debug ===');
+        console.log('Year:', year);
+        console.log('Total transactions fetched:', transactions?.length || 0);
+        console.log('Sample transactions:', transactions?.slice(0, 5));
+
         // Fetch all budgets for the user (including month-specific budgets)
         const { data: budgets, error: budgetError } = await supabase
           .from('budgets')
@@ -84,6 +89,15 @@ export function useMonthlyOverview(year: number) {
             } else {
               monthData.expense += amount;
             }
+          } else {
+            console.warn('Transaction outside year range:', tx.date, 'Expected year:', year);
+          }
+        });
+
+        console.log('Monthly aggregation results:');
+        monthlyDataMap.forEach((data, month) => {
+          if (data.income > 0 || data.expense > 0) {
+            console.log(`${month}: Income=$${data.income}, Expense=$${data.expense}`);
           }
         });
 
