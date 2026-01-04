@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS budgets_user_month_idx ON budgets(user_id, month);
 -- Drop existing unique constraints if any, then add new one
 -- This ensures one budget per category per period per month per user
 CREATE UNIQUE INDEX IF NOT EXISTS budgets_user_category_period_month_unique
-ON budgets(user_id, category, period, month);
+ON budgets(user_id, category_id, period, month);
 
 -- Add comment to explain the month column
 COMMENT ON COLUMN budgets.month IS 'Month for this budget in YYYY-MM format. NULL means budget applies to all months.';
