@@ -15,7 +15,7 @@ export interface Database {
           user_id: string
           amount: number
           type: 'income' | 'expense'
-          category: string
+          category_id: string
           description: string
           date: string
           created_at: string
@@ -25,9 +25,9 @@ export interface Database {
           user_id: string
           amount: number
           type: 'income' | 'expense'
-          category: string
-          description: string
-          date: string
+          category_id: string
+          description?: string
+          date?: string
           created_at?: string
         }
         Update: {
@@ -35,7 +35,7 @@ export interface Database {
           user_id?: string
           amount?: number
           type?: 'income' | 'expense'
-          category?: string
+          category_id?: string
           description?: string
           date?: string
           created_at?: string
@@ -45,28 +45,31 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          category: string
-          limit: number
+          category_id: string
+          budget_limit: number
           spent: number
           period: 'monthly' | 'weekly' | 'yearly'
+          month: string | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          category: string
-          limit: number
-          spent: number
+          category_id: string
+          budget_limit: number
+          spent?: number
           period: 'monthly' | 'weekly' | 'yearly'
+          month?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          category?: string
-          limit?: number
+          category_id?: string
+          budget_limit?: number
           spent?: number
           period?: 'monthly' | 'weekly' | 'yearly'
+          month?: string | null
           created_at?: string
         }
       }
