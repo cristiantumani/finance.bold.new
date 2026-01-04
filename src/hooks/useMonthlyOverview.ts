@@ -58,7 +58,7 @@ export function useMonthlyOverview(year: number) {
               // If budget has a specific month, only apply it to that month
               // If budget.month is null, apply it to all months (backward compatibility)
               if (budget.month === month || budget.month === null) {
-                monthBudget += budget.budget_limit;
+                monthBudget += Number(budget.budget_limit);
               }
             }
           });
@@ -78,10 +78,11 @@ export function useMonthlyOverview(year: number) {
           const monthData = monthlyDataMap.get(month);
 
           if (monthData) {
+            const amount = Number(tx.amount); // Ensure amount is a number
             if (tx.type === 'income') {
-              monthData.income += tx.amount;
+              monthData.income += amount;
             } else {
-              monthData.expense += tx.amount;
+              monthData.expense += amount;
             }
           }
         });
