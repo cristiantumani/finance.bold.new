@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Plus, 
+import {
+  Plus,
   ArrowLeft,
   Edit2,
   Trash2,
@@ -15,7 +15,14 @@ import {
   CircleDollarSign,
   Wallet,
   Receipt,
-  Percent
+  Percent,
+  Search,
+  Filter,
+  X,
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import MonthSwitcher from '../components/MonthSwitcher';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,6 +56,9 @@ type BudgetSummary = {
   };
 };
 
+type SortField = 'category' | 'budget' | 'spent' | 'remaining' | 'percentage';
+type SortDirection = 'asc' | 'desc';
+
 export default function Budgets() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +67,10 @@ export default function Budgets() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [periodFilter, setPeriodFilter] = useState<'all' | 'monthly' | 'weekly' | 'yearly'>('all');
+  const [sortField, setSortField] = useState<SortField>('category');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary>({
     totalBudget: 0,
     totalSpent: 0,
@@ -81,7 +95,7 @@ export default function Budgets() {
       const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
 
       // Fetch budgets with their categories
-      const { data, error } = await supabase
+      let query = supabase
         .from('budgets')
         .select(`
           *,
@@ -90,9 +104,14 @@ export default function Budgets() {
             expense_type
           )
         `)
-        .eq('user_id', user.id)
-        .eq('period', 'monthly')
-        .order('categories(name)', { ascending: true });
+        .eq('user_id', user.id);
+
+      // Apply period filter
+      if (periodFilter !== 'all') {
+        query = query.eq('period', periodFilter);
+      }
+
+      const { data, error } = await query.order('categories(name)', { ascending: true });
 
       if (error) throw error;
 
@@ -155,7 +174,106 @@ export default function Budgets() {
 
   useEffect(() => {
     fetchBudgets();
-  }, [user, selectedDate]);
+  }, [user, selectedDate, periodFilter]);
+
+  const getFilteredAndSortedBudgets = () => {
+    let filtered = budgets;
+
+    // Apply search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(budget =>
+        budget.categories?.name.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'category':
+          comparison = (a.categories?.name || '').localeCompare(b.categories?.name || '');
+          break;
+        case 'budget':
+          comparison = a.budget_limit - b.budget_limit;
+          break;
+        case 'spent':
+          comparison = a.spent - b.spent;
+          break;
+        case 'remaining':
+          comparison = (a.budget_limit - a.spent) - (b.budget_limit - b.spent);
+          break;
+        case 'percentage':
+          const aPercentage = (a.spent / a.budget_limit) * 100;
+          const bPercentage = (b.spent / b.budget_limit) * 100;
+          comparison = aPercentage - bPercentage;
+          break;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (periodFilter !== 'all') count++;
+    return count;
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setPeriodFilter('all');
+    setSortField('category');
+    setSortDirection('asc');
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleExportCSV = () => {
+    const filteredBudgets = getFilteredAndSortedBudgets();
+    const headers = ['Category', 'Expense Type', 'Period', 'Budget Amount', 'Spent', 'Remaining', 'Percentage'];
+    const rows = filteredBudgets.map(budget => {
+      const percentage = (budget.spent / budget.budget_limit) * 100;
+      const expenseType = budget.categories?.expense_type
+        ? budget.categories.expense_type.split('_').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ')
+        : 'N/A';
+      return [
+        budget.categories?.name || 'Uncategorized',
+        expenseType,
+        budget.period,
+        budget.budget_limit,
+        budget.spent,
+        budget.budget_limit - budget.spent,
+        percentage.toFixed(1) + '%'
+      ];
+    });
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budgets-${formatMonthYear(selectedDate)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const handleAddBudget = async (data: Omit<Budget, 'id' | 'spent'>) => {
     if (!user) return;
@@ -232,6 +350,17 @@ export default function Budgets() {
   const formatMonthYear = (date: Date) => {
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={14} className="opacity-50" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp size={14} className="text-indigo-400" />
+      : <ArrowDown size={14} className="text-indigo-400" />;
+  };
+
+  const filteredAndSortedBudgets = getFilteredAndSortedBudgets();
 
   const budgetPieChartData = {
     labels: ['Fixed Expenses', 'Variable Expenses', 'Controllable Fixed Expenses'],
@@ -342,6 +471,56 @@ export default function Budgets() {
           </div>
         </div>
 
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search budgets by category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-dark-800/50 border border-dark-700 rounded-xl text-dark-100 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-800/50 border border-dark-700 rounded-xl text-dark-100 hover:bg-dark-700/50 transition-colors"
+            >
+              <Download size={18} />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2">
+              <Filter size={18} className="text-dark-400" />
+              <span className="text-sm font-medium text-dark-300">Filters:</span>
+            </div>
+
+            <select
+              value={periodFilter}
+              onChange={(e) => setPeriodFilter(e.target.value as 'all' | 'monthly' | 'weekly' | 'yearly')}
+              className="px-3 py-1.5 bg-dark-800/50 border border-dark-700 rounded-lg text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All Periods</option>
+              <option value="monthly">Monthly</option>
+              <option value="weekly">Weekly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+
+            {getActiveFilterCount() > 0 && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-indigo-400 text-sm hover:bg-indigo-500/20 transition-colors"
+              >
+                <X size={14} />
+                Clear Filters ({getActiveFilterCount()})
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-dark-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-dark-700">
             <div className="flex items-center gap-4">
@@ -426,20 +605,50 @@ export default function Budgets() {
             <table className="w-full">
               <thead>
                 <tr className="bg-dark-800/80">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
-                    Category
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider cursor-pointer hover:bg-dark-700/50 transition-colors"
+                    onClick={() => handleSort('category')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Category
+                      {getSortIcon('category')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
-                    Budget Amount
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider cursor-pointer hover:bg-dark-700/50 transition-colors"
+                    onClick={() => handleSort('budget')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Budget Amount
+                      {getSortIcon('budget')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
-                    Spent
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider cursor-pointer hover:bg-dark-700/50 transition-colors"
+                    onClick={() => handleSort('spent')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Spent
+                      {getSortIcon('spent')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
-                    Remaining
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider cursor-pointer hover:bg-dark-700/50 transition-colors"
+                    onClick={() => handleSort('remaining')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Remaining
+                      {getSortIcon('remaining')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider">
-                    Progress
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-dark-400 uppercase tracking-wider cursor-pointer hover:bg-dark-700/50 transition-colors"
+                    onClick={() => handleSort('percentage')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Progress
+                      {getSortIcon('percentage')}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-dark-400 uppercase tracking-wider">
                     Actions
@@ -447,7 +656,7 @@ export default function Budgets() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-700">
-                {budgets.map((budget) => {
+                {filteredAndSortedBudgets.map((budget) => {
                   const percentage = (budget.spent / budget.budget_limit) * 100;
                   const expenseType = budget.categories?.expense_type
                     ? budget.categories.expense_type.split('_').map(word => 
@@ -517,10 +726,12 @@ export default function Budgets() {
                     </tr>
                   );
                 })}
-                {budgets.length === 0 && (
+                {filteredAndSortedBudgets.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-dark-400">
-                      No budgets found. Click "Add Budget" to create your first budget.
+                      {budgets.length === 0
+                        ? 'No budgets found. Click "Add Budget" to create your first budget.'
+                        : 'No budgets match your current filters.'}
                     </td>
                   </tr>
                 )}
