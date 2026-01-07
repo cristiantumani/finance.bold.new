@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, 
+import {
+  Plus,
   Search,
   Edit2,
   Trash2,
@@ -12,7 +12,9 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
-  Calendar
+  Calendar,
+  X,
+  Filter
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -35,7 +37,7 @@ type SortConfig = {
 };
 
 type FilterConfig = {
-  month: string;
+  month: string | 'all';
   type: 'all' | 'income' | 'expense';
   category: string;
 };
@@ -54,7 +56,7 @@ export default function Transactions() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [filters, setFilters] = useState<FilterConfig>({
-    month: new Date().toISOString().slice(0, 7),
+    month: 'all',
     type: 'all',
     category: 'all'
   });
@@ -77,6 +79,27 @@ export default function Transactions() {
     }
   };
 
+  // Count active filters
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.month !== 'all') count++;
+    if (filters.type !== 'all') count++;
+    if (filters.category !== 'all') count++;
+    if (searchTerm) count++;
+    return count;
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilters({
+      month: 'all',
+      type: 'all',
+      category: 'all'
+    });
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
+
   const fetchTransactions = async () => {
     if (!user) return;
 
@@ -92,12 +115,12 @@ export default function Transactions() {
         .eq('user_id', user.id);
 
       // Apply month filter
-      if (filters.month) {
+      if (filters.month && filters.month !== 'all') {
         const startDate = `${filters.month}-01`;
         const endDate = new Date(filters.month.split('-')[0], parseInt(filters.month.split('-')[1]), 0)
           .toISOString()
           .split('T')[0];
-        
+
         query = query
           .gte('date', startDate)
           .lte('date', endDate);
@@ -113,9 +136,18 @@ export default function Transactions() {
         query = query.eq('category_id', filters.category);
       }
 
-      // Apply search
+      // Apply search - search across description and amount
       if (searchTerm) {
-        query = query.or(`description.ilike.%${searchTerm}%,categories.name.ilike.%${searchTerm}%`);
+        // Try to parse as number for amount search
+        const searchAsNumber = parseFloat(searchTerm.replace(/[^0-9.]/g, ''));
+
+        if (!isNaN(searchAsNumber)) {
+          // If it's a number, search both description and amount
+          query = query.or(`description.ilike.%${searchTerm}%,amount.eq.${searchAsNumber}`);
+        } else {
+          // Otherwise just search description
+          query = query.ilike('description', `%${searchTerm}%`);
+        }
       }
 
       // Apply sorting
@@ -414,12 +446,13 @@ export default function Transactions() {
 
       <div className="bg-dark-800 rounded-xl shadow-sm border border-dark-700 overflow-hidden">
         <div className="p-4 border-b border-dark-700">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col gap-4">
+            {/* Search bar */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-400" size={20} />
               <input
                 type="text"
-                placeholder="Search transactions..."
+                placeholder="Search by description or amount..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -428,49 +461,80 @@ export default function Transactions() {
                 className="w-full pl-10 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-lg text-dark-100 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-4">
-                <select
-                  value={filters.month}
-                  onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
-                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  {availableMonths.map(month => (
-                    <option key={month} value={month}>
-                      {new Date(month + '-01').toLocaleDateString('default', { 
-                        month: 'long', 
-                        year: 'numeric' 
-                      })}
-                    </option>
-                  ))}
-                </select>
 
-                <select
-                  value={filters.type}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    type: e.target.value as 'all' | 'income' | 'expense'
-                  }))}
-                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  <option value="all">All Types</option>
-                  <option value="income">Income</option>
-                  <option value="expense">Expenses</option>
-                </select>
-
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                  className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+            {/* Filters row */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-dark-400 text-sm">
+                <Filter size={16} />
+                <span>Filters:</span>
+                {getActiveFilterCount() > 0 && (
+                  <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
               </div>
+
+              <select
+                value={filters.month}
+                onChange={(e) => {
+                  setFilters(prev => ({ ...prev, month: e.target.value }));
+                  setCurrentPage(1);
+                }}
+                className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="all">All Months</option>
+                {availableMonths.map(month => (
+                  <option key={month} value={month}>
+                    {new Date(month + '-01').toLocaleDateString('default', {
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filters.type}
+                onChange={(e) => {
+                  setFilters(prev => ({
+                    ...prev,
+                    type: e.target.value as 'all' | 'income' | 'expense'
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="all">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expenses</option>
+              </select>
+
+              <select
+                value={filters.category}
+                onChange={(e) => {
+                  setFilters(prev => ({ ...prev, category: e.target.value }));
+                  setCurrentPage(1);
+                }}
+                className="bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-[160px]"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+
+              {getActiveFilterCount() > 0 && (
+                <button
+                  onClick={handleClearFilters}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-dark-300 hover:text-dark-100 hover:bg-dark-700 rounded-lg transition-colors border border-dark-600"
+                  title="Clear all filters"
+                >
+                  <X size={16} />
+                  Clear
+                </button>
+              )}
             </div>
           </div>
         </div>
