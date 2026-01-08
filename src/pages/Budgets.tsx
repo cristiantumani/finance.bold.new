@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import MonthSwitcher from '../components/MonthSwitcher';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 import type { Budget } from '../types/finance';
 import BudgetForm from '../components/BudgetForm';
@@ -33,6 +34,9 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 type BudgetWithCategory = Budget & {
   categories: {
@@ -61,6 +65,7 @@ type SortDirection = 'asc' | 'desc';
 
 export default function Budgets() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
   const [budgets, setBudgets] = useState<BudgetWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,8 +91,11 @@ export default function Budgets() {
     }
   });
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   const fetchBudgets = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       // Format date for query
@@ -104,7 +112,7 @@ export default function Budgets() {
             expense_type
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       // Apply period filter
       if (periodFilter !== 'all') {
@@ -120,7 +128,7 @@ export default function Budgets() {
         const { data: spentData, error: spentError } = await supabase
           .from('transactions')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .eq('category_id', budget.category_id)
           .eq('type', 'expense')
           .gte('date', startDate.toISOString().split('T')[0])
@@ -174,7 +182,7 @@ export default function Budgets() {
 
   useEffect(() => {
     fetchBudgets();
-  }, [user, selectedDate, periodFilter]);
+  }, [effectiveUserId, selectedDate, periodFilter]);
 
   const getFilteredAndSortedBudgets = () => {
     let filtered = budgets;
@@ -276,13 +284,13 @@ export default function Budgets() {
   };
 
   const handleAddBudget = async (data: Omit<Budget, 'id' | 'spent'>) => {
-    if (!user) return;
+    if (!effectiveUserId || isDemoMode) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
         .from('budgets')
         .insert([{
-          user_id: user.id,
+          user_id: effectiveUserId,
           spent: 0,
           ...data
         }]);
@@ -297,7 +305,7 @@ export default function Budgets() {
   };
 
   const handleUpdateBudget = async (data: Omit<Budget, 'id' | 'spent'>) => {
-    if (!user || !editingBudget) return;
+    if (!effectiveUserId || !editingBudget || isDemoMode) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
@@ -306,7 +314,7 @@ export default function Budgets() {
           ...data
         })
         .eq('id', editingBudget.id)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (error) throw error;
 
@@ -318,14 +326,14 @@ export default function Budgets() {
   };
 
   const handleDeleteBudget = async (id: string) => {
-    if (!user || !window.confirm('Are you sure you want to delete this budget?')) return;
+    if (!effectiveUserId || isDemoMode || !window.confirm('Are you sure you want to delete this budget?')) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
         .from('budgets')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (error) throw error;
 

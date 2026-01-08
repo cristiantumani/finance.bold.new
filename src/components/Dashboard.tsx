@@ -9,12 +9,16 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 import MonthSwitcher from './MonthSwitcher';
 import TransactionForm from './TransactionForm';
 import QuickTransactionForm from './QuickTransactionForm';
 import type { Transaction, Budget } from '../types/finance';
 import { Link } from 'react-router-dom';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 type TransactionWithCategory = Transaction & {
   categories: {
@@ -30,6 +34,7 @@ type BudgetWithCategory = Budget & {
 
 function Dashboard() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
@@ -42,8 +47,11 @@ function Dashboard() {
     savingsRate: 0
   });
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   const fetchData = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -57,7 +65,7 @@ function Dashboard() {
             name
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', endDate.toISOString().split('T')[0])
         .order('date', { ascending: false });
@@ -72,7 +80,7 @@ function Dashboard() {
             name
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (budgetsError) throw budgetsError;
 
@@ -105,7 +113,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [user, selectedDate]);
+  }, [effectiveUserId, selectedDate]);
 
   if (loading) {
     return (
@@ -133,8 +141,13 @@ function Dashboard() {
                 onChange={setSelectedDate}
               />
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-5 py-3 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg"
+                onClick={() => !isDemoMode && setIsModalOpen(true)}
+                disabled={isDemoMode}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all shadow-lg ${
+                  isDemoMode
+                    ? 'bg-dark-900 text-dark-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600'
+                }`}
               >
                 <Plus size={20} />
                 <span className="hidden sm:inline">Add Transaction</span>

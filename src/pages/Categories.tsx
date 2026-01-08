@@ -14,10 +14,14 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 import CategoryEducation from '../components/CategoryEducation';
 import StepByStepCategoryForm from '../components/StepByStepCategoryForm';
 import type { ExpenseType } from '../types/finance';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 type Category = {
   id: string;
@@ -38,10 +42,14 @@ type CategoryFormData = {
 
 export default function Categories() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
 
   const expenseTypeIcons = {
     fixed: <Lock className="text-red-400" size={20} />,
@@ -56,13 +64,13 @@ export default function Categories() {
   };
 
   const fetchCategories = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .order('name');
 
       if (error) throw error;
@@ -76,7 +84,7 @@ export default function Categories() {
 
   useEffect(() => {
     fetchCategories();
-  }, [user]);
+  }, [effectiveUserId]);
 
   const handleSubmit = async (formData: CategoryFormData) => {
     if (!user) return;
