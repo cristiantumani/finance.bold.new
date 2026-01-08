@@ -13,7 +13,8 @@ dist-ssr
 *.local
 
 # Environment variables
-.env
+# .env is the template and IS committed
+# .env.local contains actual secrets and is NOT committed
 .env.local
 .env.*.local
 

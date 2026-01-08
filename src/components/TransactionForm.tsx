@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
+import { validateTransaction, sanitizeInput, ValidationError } from '../lib/validation';
 import type { Transaction, ExpenseType } from '../types/finance';
 
 type Category = {
@@ -36,12 +38,20 @@ export default function TransactionForm({
   title
 }: TransactionFormProps) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState(defaultFormData);
+  const [errors, setErrors] = useState<{
+    description?: ValidationError;
+    amount?: ValidationError;
+    date?: ValidationError;
+    category?: ValidationError;
+  }>({});
 
   useEffect(() => {
     if (!isOpen) {
       setFormData(defaultFormData);
+      setErrors({});
     }
   }, [isOpen]);
 
@@ -80,17 +90,45 @@ export default function TransactionForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Prevent submission in demo mode
+    if (isDemoMode) {
+      alert('Demo mode is read-only. Sign up to manage your own finances!');
+      return;
+    }
+
+    // Validate all fields
+    const validationErrors = {
+      description: validateTransaction.description(formData.description),
+      amount: validateTransaction.amount(Number(formData.amount)),
+      date: validateTransaction.date(formData.date),
+      category: validateTransaction.category(formData.category_id)
+    };
+
+    // Check if there are any errors
+    const hasErrors = Object.values(validationErrors).some(error => error !== null);
+
+    if (hasErrors) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    // Clear errors if validation passes
+    setErrors({});
+
     const selectedCategory = categories.find(c => c.id === formData.category_id);
-    
+
+    // Sanitize description before submission
+    const sanitizedDescription = sanitizeInput(formData.description);
+
     await onSubmit({
       amount: Number(formData.amount),
       type: formData.type,
       category_id: formData.category_id,
-      description: formData.description,
+      description: sanitizedDescription,
       date: formData.date,
-      expense_type: formData.type === 'expense' && selectedCategory 
-        ? selectedCategory.expense_type 
+      expense_type: formData.type === 'expense' && selectedCategory
+        ? selectedCategory.expense_type
         : undefined
     });
   };
@@ -158,7 +196,7 @@ export default function TransactionForm({
                 Category
               </label>
               {formData.type === 'expense' && (
-                <Link 
+                <Link
                   to="/categories"
                   className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1"
                 >
@@ -170,11 +208,18 @@ export default function TransactionForm({
             <select
               required
               value={formData.category_id}
-              onChange={(e) => setFormData({
-                ...formData,
-                category_id: e.target.value
-              })}
-              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  category_id: e.target.value
+                });
+                if (errors.category) {
+                  setErrors({ ...errors, category: null });
+                }
+              }}
+              className={`w-full px-3 py-2 bg-dark-900 border ${
+                errors.category ? 'border-red-500' : 'border-dark-600'
+              } rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100`}
             >
               <option value="">Select a category</option>
               {filteredCategories.map(category => (
@@ -183,6 +228,9 @@ export default function TransactionForm({
                 </option>
               ))}
             </select>
+            {errors.category && (
+              <p className="mt-1 text-sm text-red-400">{errors.category}</p>
+            )}
           </div>
 
           <div>
@@ -194,13 +242,23 @@ export default function TransactionForm({
               step="0.01"
               required
               value={formData.amount}
-              onChange={(e) => setFormData({
-                ...formData,
-                amount: e.target.value
-              })}
-              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  amount: e.target.value
+                });
+                if (errors.amount) {
+                  setErrors({ ...errors, amount: null });
+                }
+              }}
+              className={`w-full px-3 py-2 bg-dark-900 border ${
+                errors.amount ? 'border-red-500' : 'border-dark-600'
+              } rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100`}
               placeholder="0.00"
             />
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-400">{errors.amount}</p>
+            )}
           </div>
 
           <div>
@@ -210,13 +268,24 @@ export default function TransactionForm({
             <input
               type="text"
               value={formData.description}
-              onChange={(e) => setFormData({
-                ...formData,
-                description: e.target.value
-              })}
-              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  description: e.target.value
+                });
+                if (errors.description) {
+                  setErrors({ ...errors, description: null });
+                }
+              }}
+              className={`w-full px-3 py-2 bg-dark-900 border ${
+                errors.description ? 'border-red-500' : 'border-dark-600'
+              } rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100`}
               placeholder="Enter description"
+              maxLength={500}
             />
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-400">{errors.description}</p>
+            )}
           </div>
 
           <div>
@@ -227,12 +296,23 @@ export default function TransactionForm({
               type="date"
               required
               value={formData.date}
-              onChange={(e) => setFormData({
-                ...formData,
-                date: e.target.value
-              })}
-              className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  date: e.target.value
+                });
+                if (errors.date) {
+                  setErrors({ ...errors, date: null });
+                }
+              }}
+              max={new Date().toISOString().split('T')[0]}
+              className={`w-full px-3 py-2 bg-dark-900 border ${
+                errors.date ? 'border-red-500' : 'border-dark-600'
+              } rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-dark-100`}
             />
+            {errors.date && (
+              <p className="mt-1 text-sm text-red-400">{errors.date}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
@@ -245,9 +325,12 @@ export default function TransactionForm({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200"
+              disabled={isDemoMode}
+              className={`px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-xl hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-800 focus:ring-indigo-500 transition-all duration-200 ${
+                isDemoMode ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              {initialData ? 'Update' : 'Add'} Transaction
+              {isDemoMode ? 'Read-Only Mode' : `${initialData ? 'Update' : 'Add'} Transaction`}
             </button>
           </div>
         </form>

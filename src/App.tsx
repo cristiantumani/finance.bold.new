@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { DemoProvider } from './contexts/DemoContext';
 import AuthGuard from './components/AuthGuard';
 import Layout from './components/Layout';
 import Footer from './components/Footer';
@@ -23,24 +24,27 @@ import ResetPassword from './pages/ResetPassword';
 import OnboardingSetup from './pages/OnboardingSetup';
 import VerifyEmail from './pages/VerifyEmail';
 import VerifyEmailReminder from './pages/VerifyEmailReminder';
+import Demo from './pages/Demo';
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <div className="min-h-screen bg-dark-950">
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/verify-email-reminder" element={<VerifyEmailReminder />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/expense-types" element={<ExpenseTypes />} />
-            <Route path="/onboarding" element={
+      <DemoProvider>
+        <AuthProvider>
+          <div className="min-h-screen bg-dark-950">
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/demo" element={<Demo />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/verify-email-reminder" element={<VerifyEmailReminder />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/expense-types" element={<ExpenseTypes />} />
+              <Route path="/onboarding" element={
               <AuthGuard>
                 <OnboardingSetup />
               </AuthGuard>
@@ -89,10 +93,11 @@ function App() {
             } />
             <Route path="/docs" element={<Documentation />} />
           </Routes>
-          <Footer />
-          <Feedback />
-        </div>
-      </AuthProvider>
+            <Footer />
+            <Feedback />
+          </div>
+        </AuthProvider>
+      </DemoProvider>
     </Router>
   );
 }
