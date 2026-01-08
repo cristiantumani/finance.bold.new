@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import type { ReportError } from '../types/reports';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 export type ExpenseType = 'fixed' | 'variable' | 'controllable_fixed';
 
@@ -21,13 +25,17 @@ type FilterOptions = {
 
 export function useCategoryBreakdown(year: number, month: number, filters: FilterOptions) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [data, setData] = useState<CategoryExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReportError | null>(null);
   const [totalExpenses, setTotalExpenses] = useState(0);
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     const fetchCategoryBreakdown = async () => {
       setLoading(true);
@@ -50,7 +58,7 @@ export function useCategoryBreakdown(year: number, month: number, filters: Filte
               expense_type
             )
           `)
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .eq('type', 'expense')
           .gte('date', startDate)
           .lte('date', endDate);
@@ -109,7 +117,7 @@ export function useCategoryBreakdown(year: number, month: number, filters: Filte
     };
 
     fetchCategoryBreakdown();
-  }, [user, year, month, filters.includeFixed, filters.includeVariable, filters.includeControllableFixed]);
+  }, [effectiveUserId, year, month, filters.includeFixed, filters.includeVariable, filters.includeControllableFixed]);
 
   return { data, totalExpenses, loading, error };
 }

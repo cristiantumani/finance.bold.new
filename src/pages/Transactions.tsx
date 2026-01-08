@@ -109,7 +109,12 @@ export default function Transactions() {
   };
 
   const fetchTransactions = async () => {
-    if (!effectiveUserId) return;
+    if (!effectiveUserId) {
+      console.log('No effective user ID, skipping fetch');
+      return;
+    }
+
+    console.log('Fetching transactions for user:', effectiveUserId, 'isDemoMode:', isDemoMode);
 
     try {
       let query = supabase
@@ -175,8 +180,12 @@ export default function Transactions() {
 
       const { data, count, error } = await query.range(from, to);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Fetched transactions:', data?.length, 'Total count:', count);
       setTransactions(data as TransactionWithCategory[]);
       setTotalPages(Math.ceil((count || 0) / itemsPerPage));
     } catch (error) {
@@ -191,6 +200,10 @@ export default function Transactions() {
   }, [effectiveUserId]);
 
   useEffect(() => {
+    console.log('=== Transaction useEffect triggered ===');
+    console.log('effectiveUserId:', effectiveUserId);
+    console.log('isDemoMode:', isDemoMode);
+    console.log('user:', user?.id);
     fetchTransactions();
   }, [effectiveUserId, currentPage, searchTerm, filters, sort]);
 

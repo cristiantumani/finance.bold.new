@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { Calendar } from 'lucide-react';
+import { useDemo } from '../contexts/DemoContext';
 import MonthlyOverview from '../components/MonthlyOverview';
 import CategoryBreakdown from '../components/CategoryBreakdown';
 import SpendingPace from '../components/SpendingPace';
 import BudgetPerformance from '../components/BudgetPerformance';
 
 export default function Reports() {
+  const { isDemoMode } = useDemo();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+
+  // In demo mode, default to 2025 since demo data is from Feb 2025 - Jan 2026
+  const defaultYear = isDemoMode ? 2025 : currentYear;
+  // In demo mode, default to June to show data from middle of the year
+  const defaultMonth = isDemoMode ? 6 : currentMonth;
+
+  const [selectedYear, setSelectedYear] = useState(defaultYear);
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
 
   // Generate year options (current year and 5 years back)
   const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);

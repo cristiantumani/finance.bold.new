@@ -1,16 +1,31 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDemo } from '../contexts/DemoContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Info, ArrowRight, Lock, TrendingUp, PieChart, Calendar, DollarSign } from 'lucide-react';
 
 export default function Demo() {
   const { enterDemoMode } = useDemo();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Enter demo mode when component mounts
-    enterDemoMode();
-  }, [enterDemoMode]);
+    // Sign out any existing user and enter demo mode
+    const initDemoMode = async () => {
+      console.log('=== Initializing Demo Mode ===');
+      try {
+        await signOut();
+        console.log('Signed out successfully');
+      } catch (error) {
+        // Ignore errors if no user is signed in
+        console.log('No active session to sign out:', error);
+      }
+      enterDemoMode();
+      console.log('Demo mode activated, sessionStorage:', sessionStorage.getItem('demoMode'));
+    };
+
+    initDemoMode();
+  }, [enterDemoMode, signOut]);
 
   const handleEnterDemo = () => {
     navigate('/transactions');

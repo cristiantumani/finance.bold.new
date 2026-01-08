@@ -25,6 +25,7 @@ import OnboardingSetup from './pages/OnboardingSetup';
 import VerifyEmail from './pages/VerifyEmail';
 import VerifyEmailReminder from './pages/VerifyEmailReminder';
 import Demo from './pages/Demo';
+import DiagnosticTest from './pages/DiagnosticTest';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/demo" element={<Demo />} />
+              <Route path="/diagnostic" element={<DiagnosticTest />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

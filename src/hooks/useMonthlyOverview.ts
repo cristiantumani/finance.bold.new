@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import type { MonthlyData, ReportError } from '../types/reports';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 export function useMonthlyOverview(year: number) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [data, setData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReportError | null>(null);
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     const fetchMonthlyOverview = async () => {
       setLoading(true);
@@ -30,7 +38,7 @@ export function useMonthlyOverview(year: number) {
         const { data: transactions, error: txError } = await supabase
           .from('transactions')
           .select('date, type, amount')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .gte('date', startDate)
           .lte('date', endDate)
           .limit(10000); // Increase limit to handle large datasets
@@ -46,7 +54,7 @@ export function useMonthlyOverview(year: number) {
         const { data: budgets, error: budgetError } = await supabase
           .from('budgets')
           .select('budget_limit, period, month')
-          .eq('user_id', user.id);
+          .eq('user_id', effectiveUserId);
 
         if (budgetError) throw budgetError;
 
@@ -123,7 +131,7 @@ export function useMonthlyOverview(year: number) {
     };
 
     fetchMonthlyOverview();
-  }, [user, year]);
+  }, [effectiveUserId, year]);
 
   return { data, loading, error };
 }

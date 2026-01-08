@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import type { ReportError } from '../types/reports';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 export type BudgetStatus = 'under' | 'near' | 'over';
 
@@ -48,12 +52,16 @@ export type BudgetSuggestion = {
 
 export function useBudgetPerformance(year: number, month: number) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [monthData, setMonthData] = useState<CategoryBudgetPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReportError | null>(null);
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     const fetchBudgetPerformance = async () => {
       setLoading(true);
@@ -78,7 +86,7 @@ export function useBudgetPerformance(year: number, month: number) {
               expense_type
             )
           `)
-          .eq('user_id', user.id);
+          .eq('user_id', effectiveUserId);
 
         if (budgetError) throw budgetError;
 
@@ -86,7 +94,7 @@ export function useBudgetPerformance(year: number, month: number) {
         const { data: transactions, error: txError } = await supabase
           .from('transactions')
           .select('category_id, amount')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .eq('type', 'expense')
           .gte('date', startDate)
           .lte('date', endDate);
@@ -150,19 +158,23 @@ export function useBudgetPerformance(year: number, month: number) {
     };
 
     fetchBudgetPerformance();
-  }, [user, year, month]);
+  }, [effectiveUserId, year, month]);
 
   return { monthData, loading, error };
 }
 
 export function useCategoryBudgetHistory(categoryId: string, monthsBack: number = 6) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [historyData, setHistoryData] = useState<MonthlyBudgetPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReportError | null>(null);
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   useEffect(() => {
-    if (!user || !categoryId) return;
+    if (!effectiveUserId || !categoryId) return;
 
     const fetchCategoryHistory = async () => {
       setLoading(true);
@@ -176,7 +188,7 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
         const { data: budgets, error: budgetError } = await supabase
           .from('budgets')
           .select('budget_limit, period, month')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .eq('category_id', categoryId);
 
         if (budgetError) throw budgetError;
@@ -210,7 +222,7 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
           const { data: transactions, error: txError } = await supabase
             .from('transactions')
             .select('amount')
-            .eq('user_id', user.id)
+            .eq('user_id', effectiveUserId)
             .eq('type', 'expense')
             .eq('category_id', categoryId)
             .gte('date', startDate)
@@ -253,7 +265,7 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
     };
 
     fetchCategoryHistory();
-  }, [user, categoryId, monthsBack]);
+  }, [effectiveUserId, categoryId, monthsBack]);
 
   return { historyData, loading, error };
 }
@@ -269,12 +281,16 @@ function calculateStandardDeviation(values: number[]): number {
 
 export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReportError | null>(null);
 
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
+
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     const calculateSuggestions = async () => {
       setLoading(true);
@@ -285,7 +301,7 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
         const { data: oldestTx, error: oldestError } = await supabase
           .from('transactions')
           .select('date')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .order('date', { ascending: true })
           .limit(1)
           .single();
@@ -324,7 +340,7 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
               expense_type
             )
           `)
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .eq('period', 'monthly');
 
         if (budgetError) throw budgetError;
@@ -355,7 +371,7 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
             const { data: transactions, error: txError } = await supabase
               .from('transactions')
               .select('amount')
-              .eq('user_id', user.id)
+              .eq('user_id', effectiveUserId)
               .eq('type', 'expense')
               .eq('category_id', budget.category_id)
               .gte('date', startDate)
@@ -464,7 +480,7 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
     };
 
     calculateSuggestions();
-  }, [user, monthsBack]);
+  }, [effectiveUserId, monthsBack]);
 
   return { suggestions, loading, error };
 }

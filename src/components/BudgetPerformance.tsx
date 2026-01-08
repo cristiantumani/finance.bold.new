@@ -14,6 +14,7 @@ import {
 import { useBudgetPerformance, useCategoryBudgetHistory, useBudgetSuggestions, type BudgetSuggestion, type TimeRange } from '../hooks/useBudgetPerformance';
 import { TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 
 // Register Chart.js components
@@ -33,9 +34,10 @@ type SuggestionCardProps = {
   onAccept: (suggestion: BudgetSuggestion, customAmount?: number) => Promise<void>;
   onDismiss: (categoryId: string) => void;
   isAccepting: boolean;
+  isDemoMode: boolean;
 };
 
-function SuggestionCard({ suggestion, onAccept, onDismiss, isAccepting }: SuggestionCardProps) {
+function SuggestionCard({ suggestion, onAccept, onDismiss, isAccepting, isDemoMode }: SuggestionCardProps) {
   const [showManualAdjust, setShowManualAdjust] = useState(false);
   const [customAmount, setCustomAmount] = useState(suggestion.suggested_budget.toString());
 
@@ -110,8 +112,9 @@ function SuggestionCard({ suggestion, onAccept, onDismiss, isAccepting }: Sugges
           <>
             <button
               onClick={() => onAccept(suggestion)}
-              disabled={isAccepting}
-              className={`px-4 py-2 ${colors.text} bg-dark-800 rounded-lg hover:bg-dark-700 transition-colors disabled:opacity-50 flex items-center gap-2`}
+              disabled={isAccepting || isDemoMode}
+              className={`px-4 py-2 ${colors.text} bg-dark-800 rounded-lg hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+              title={isDemoMode ? "Disabled in demo mode" : ""}
             >
               {isAccepting ? (
                 <>
@@ -127,7 +130,9 @@ function SuggestionCard({ suggestion, onAccept, onDismiss, isAccepting }: Sugges
             </button>
             <button
               onClick={() => setShowManualAdjust(true)}
-              className="px-4 py-2 text-dark-300 hover:text-dark-100 transition-colors"
+              disabled={isDemoMode}
+              className="px-4 py-2 text-dark-300 hover:text-dark-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isDemoMode ? "Disabled in demo mode" : ""}
             >
               Custom Amount
             </button>
@@ -180,6 +185,7 @@ type Props = {
 
 export default function BudgetPerformance({ year, month }: Props) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [activeTab, setActiveTab] = useState<'month' | 'category' | 'suggestions'>('month');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>(6);
@@ -651,6 +657,7 @@ export default function BudgetPerformance({ year, month }: Props) {
                     onAccept={handleAcceptSuggestion}
                     onDismiss={handleDismissSuggestion}
                     isAccepting={acceptingBudget === suggestion.category_id}
+                    isDemoMode={isDemoMode}
                   />
                 ))}
             </div>
