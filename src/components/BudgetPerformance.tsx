@@ -11,8 +11,10 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { useBudgetPerformance, useCategoryBudgetHistory } from '../hooks/useBudgetPerformance';
+import { useBudgetPerformance, useCategoryBudgetHistory, useBudgetSuggestions, type BudgetSuggestion, type TimeRange } from '../hooks/useBudgetPerformance';
 import { TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 // Register Chart.js components
 ChartJS.register(
@@ -26,20 +28,170 @@ ChartJS.register(
   Filler
 );
 
+type SuggestionCardProps = {
+  suggestion: BudgetSuggestion;
+  onAccept: (suggestion: BudgetSuggestion, customAmount?: number) => Promise<void>;
+  onDismiss: (categoryId: string) => void;
+  isAccepting: boolean;
+};
+
+function SuggestionCard({ suggestion, onAccept, onDismiss, isAccepting }: SuggestionCardProps) {
+  const [showManualAdjust, setShowManualAdjust] = useState(false);
+  const [customAmount, setCustomAmount] = useState(suggestion.suggested_budget.toString());
+
+  // Color scheme based on suggestion type
+  const colors = {
+    increase: { bg: 'bg-red-900/20', border: 'border-red-900/30', text: 'text-red-400', icon: TrendingUp },
+    decrease: { bg: 'bg-green-900/20', border: 'border-green-900/30', text: 'text-green-400', icon: TrendingDown },
+    seasonal: { bg: 'bg-yellow-900/20', border: 'border-yellow-900/30', text: 'text-yellow-400', icon: AlertCircle }
+  }[suggestion.suggestion_type];
+
+  const Icon = colors.icon;
+
+  const priorityStyles = {
+    high: 'bg-red-500/20 text-red-400 border-red-500/30',
+    medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  }[suggestion.priority];
+
+  return (
+    <div className={`${colors.bg} border ${colors.border} rounded-xl p-6`}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-3 flex-1">
+          <Icon className={colors.text} size={24} />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className={`font-semibold ${colors.text} text-lg`}>
+                {suggestion.category_name}
+              </h3>
+              <span className={`text-xs px-2 py-1 rounded border ${priorityStyles}`}>
+                {suggestion.priority.toUpperCase()}
+              </span>
+            </div>
+            <p className="text-dark-200 text-sm mb-3">{suggestion.reasoning}</p>
+
+            {/* Budget Comparison */}
+            <div className="flex items-center gap-6 mb-3">
+              <div>
+                <p className="text-xs text-dark-400 mb-1">Current Budget</p>
+                <p className="text-xl font-bold text-dark-100">
+                  ${suggestion.current_budget.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-dark-400">→</div>
+              <div>
+                <p className="text-xs text-dark-400 mb-1">Suggested Budget</p>
+                <p className={`text-xl font-bold ${colors.text}`}>
+                  ${suggestion.suggested_budget.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-dark-400 mb-1">Change</p>
+                <p className={`text-lg font-semibold ${colors.text}`}>
+                  {suggestion.adjustment_percentage > 0 ? '+' : ''}
+                  {suggestion.adjustment_percentage.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex gap-4 text-xs text-dark-400">
+              <span>Avg Spent: ${Math.round(suggestion.average_spent).toLocaleString()}/mo</span>
+              <span>•</span>
+              <span>Over Budget: {suggestion.months_over_budget}/{suggestion.months_analyzed} months</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3 mt-4">
+        {!showManualAdjust ? (
+          <>
+            <button
+              onClick={() => onAccept(suggestion)}
+              disabled={isAccepting}
+              className={`px-4 py-2 ${colors.text} bg-dark-800 rounded-lg hover:bg-dark-700 transition-colors disabled:opacity-50 flex items-center gap-2`}
+            >
+              {isAccepting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  Accept Suggestion
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowManualAdjust(true)}
+              className="px-4 py-2 text-dark-300 hover:text-dark-100 transition-colors"
+            >
+              Custom Amount
+            </button>
+            <button
+              onClick={() => onDismiss(suggestion.category_id)}
+              className="px-4 py-2 text-dark-400 hover:text-dark-200 transition-colors ml-auto"
+            >
+              Dismiss
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center gap-3 flex-1">
+            <div className="flex-1">
+              <input
+                type="number"
+                step="0.01"
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                className="w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-dark-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Enter custom amount"
+              />
+            </div>
+            <button
+              onClick={() => onAccept(suggestion, Number(customAmount))}
+              disabled={isAccepting || !customAmount || Number(customAmount) <= 0}
+              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
+            >
+              Apply
+            </button>
+            <button
+              onClick={() => {
+                setShowManualAdjust(false);
+                setCustomAmount(suggestion.suggested_budget.toString());
+              }}
+              className="px-4 py-2 text-dark-300 hover:text-dark-100 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   year: number;
   month: number;
 };
 
 export default function BudgetPerformance({ year, month }: Props) {
-  const [activeTab, setActiveTab] = useState<'month' | 'category'>('month');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'month' | 'category' | 'suggestions'>('month');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>(6);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+  const [acceptingBudget, setAcceptingBudget] = useState<string | null>(null);
 
   const { monthData, loading: monthLoading, error: monthError } = useBudgetPerformance(year, month);
   const { historyData, loading: historyLoading, error: historyError } = useCategoryBudgetHistory(
     selectedCategory || '',
     6
   );
+  const { suggestions, loading: suggestionsLoading, error: suggestionsError } = useBudgetSuggestions(timeRange);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -66,6 +218,42 @@ export default function BudgetPerformance({ year, month }: Props) {
       case 'over': return <XCircle size={16} className="text-red-400" />;
       default: return null;
     }
+  };
+
+  const handleAcceptSuggestion = async (
+    suggestion: BudgetSuggestion,
+    customAmount?: number
+  ) => {
+    if (!user) return;
+
+    const newBudget = customAmount || suggestion.suggested_budget;
+
+    try {
+      setAcceptingBudget(suggestion.category_id);
+
+      const { error } = await supabase
+        .from('budgets')
+        .update({ budget_limit: newBudget })
+        .eq('user_id', user.id)
+        .eq('category_id', suggestion.category_id)
+        .eq('period', 'monthly');
+
+      if (error) throw error;
+
+      alert(`✓ Budget for ${suggestion.category_name} updated to $${newBudget.toLocaleString()}`);
+
+      // Refresh page to show updated data
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Error updating budget:', err);
+      alert(`✗ Failed to update budget: ${err.message}`);
+    } finally {
+      setAcceptingBudget(null);
+    }
+  };
+
+  const handleDismissSuggestion = (categoryId: string) => {
+    setDismissedSuggestions(prev => new Set(prev).add(categoryId));
   };
 
   if (monthLoading && activeTab === 'month') {
@@ -197,6 +385,21 @@ export default function BudgetPerformance({ year, month }: Props) {
           }`}
         >
           Category Trends
+        </button>
+        <button
+          onClick={() => setActiveTab('suggestions')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'suggestions'
+              ? 'text-indigo-400 border-b-2 border-indigo-400'
+              : 'text-dark-400 hover:text-dark-300'
+          }`}
+        >
+          Budget Suggestions
+          {suggestions.length > 0 && (
+            <span className="ml-2 px-2 py-0.5 text-xs bg-indigo-500 text-white rounded-full">
+              {suggestions.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -385,6 +588,72 @@ export default function BudgetPerformance({ year, month }: Props) {
                 })}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* Budget Suggestions View */}
+      {activeTab === 'suggestions' && (
+        <div>
+          {/* Time Range Toggle */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-dark-300">Analysis Period:</span>
+              <div className="flex bg-dark-700 rounded-lg p-1">
+                <button
+                  onClick={() => setTimeRange(3)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    timeRange === 3 ? 'bg-indigo-500 text-white' : 'text-dark-300'
+                  }`}
+                >
+                  3 Months
+                </button>
+                <button
+                  onClick={() => setTimeRange(6)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    timeRange === 6 ? 'bg-indigo-500 text-white' : 'text-dark-300'
+                  }`}
+                >
+                  6 Months
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Suggestions List */}
+          {suggestionsLoading ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="animate-pulse text-dark-400">Analyzing your spending patterns...</div>
+            </div>
+          ) : suggestionsError ? (
+            <div className="text-red-400">
+              <p className="font-semibold">Error loading suggestions</p>
+              <p className="text-sm mt-1">{suggestionsError.message}</p>
+            </div>
+          ) : suggestions.filter(s => !dismissedSuggestions.has(s.category_id)).length === 0 ? (
+            <div className="bg-dark-700 rounded-lg p-12 text-center">
+              <CheckCircle size={48} className="text-green-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-dark-100 mb-2">
+                Your budgets look good!
+              </h3>
+              <p className="text-dark-400">
+                No significant adjustments recommended based on your {timeRange}-month spending pattern.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {suggestions
+                .filter(s => !dismissedSuggestions.has(s.category_id))
+                .map(suggestion => (
+                  <SuggestionCard
+                    key={suggestion.category_id}
+                    suggestion={suggestion}
+                    onAccept={handleAcceptSuggestion}
+                    onDismiss={handleDismissSuggestion}
+                    isAccepting={acceptingBudget === suggestion.category_id}
+                  />
+                ))}
+            </div>
           )}
         </div>
       )}
