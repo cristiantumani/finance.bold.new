@@ -10,14 +10,11 @@ export default function Demo() {
   useEffect(() => {
     // Enter demo mode when component mounts
     enterDemoMode();
+  }, [enterDemoMode]);
 
-    // Redirect to dashboard after 3 seconds
-    const timer = setTimeout(() => {
-      navigate('/transactions');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [enterDemoMode, navigate]);
+  const handleEnterDemo = () => {
+    navigate('/transactions');
+  };
 
   return (
     <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
@@ -87,11 +84,14 @@ export default function Demo() {
             </div>
           </div>
 
-          {/* Redirect Animation */}
-          <div className="flex items-center justify-center gap-2 text-indigo-400">
-            <span className="text-sm font-medium">Redirecting to dashboard</span>
-            <ArrowRight size={16} className="animate-pulse" />
-          </div>
+          {/* CTA Button */}
+          <button
+            onClick={handleEnterDemo}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 group"
+          >
+            <span>Explore Demo</span>
+            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
       </div>
     </div>

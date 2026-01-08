@@ -17,10 +17,14 @@ import {
   Filter
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 import { utils, writeFile } from 'xlsx';
 import TransactionForm from '../components/TransactionForm';
 import type { Transaction } from '../types/finance';
+
+// Demo user ID for demo mode
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 type TransactionWithCategory = Transaction & {
   categories: {
@@ -44,8 +48,12 @@ type FilterConfig = {
 
 export default function Transactions() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Use demo user ID when in demo mode, otherwise use authenticated user
+  const effectiveUserId = isDemoMode ? DEMO_USER_ID : user?.id;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,13 +71,13 @@ export default function Transactions() {
   const itemsPerPage = 10;
 
   const fetchCategories = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('id, name')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .order('name');
 
       if (error) throw error;
@@ -101,7 +109,7 @@ export default function Transactions() {
   };
 
   const fetchTransactions = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       let query = supabase
@@ -112,7 +120,7 @@ export default function Transactions() {
             name
           )
         `, { count: 'exact' })
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       // Apply month filter
       if (filters.month && filters.month !== 'all') {
@@ -180,21 +188,21 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchCategories();
-  }, [user]);
+  }, [effectiveUserId]);
 
   useEffect(() => {
     fetchTransactions();
-  }, [user, currentPage, searchTerm, filters, sort]);
+  }, [effectiveUserId, currentPage, searchTerm, filters, sort]);
 
   useEffect(() => {
     const fetchAvailableMonths = async () => {
-      if (!user) return;
+      if (!effectiveUserId) return;
 
       try {
         const { data, error } = await supabase
           .from('transactions')
           .select('date')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .order('date', { ascending: false });
 
         if (error) throw error;
@@ -210,7 +218,7 @@ export default function Transactions() {
     };
 
     fetchAvailableMonths();
-  }, [user]);
+  }, [effectiveUserId]);
 
   const handleSort = (field: SortField) => {
     setSort(prev => ({
@@ -253,13 +261,13 @@ export default function Transactions() {
   };
 
   const handleAddTransaction = async (data: Omit<Transaction, 'id'>) => {
-    if (!user) return;
+    if (!effectiveUserId || isDemoMode) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
         .from('transactions')
         .insert([{
-          user_id: user.id,
+          user_id: effectiveUserId,
           ...data
         }]);
 
@@ -273,7 +281,7 @@ export default function Transactions() {
   };
 
   const handleUpdateTransaction = async (data: Omit<Transaction, 'id'>) => {
-    if (!user || !editingTransaction) return;
+    if (!effectiveUserId || !editingTransaction || isDemoMode) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
@@ -282,7 +290,7 @@ export default function Transactions() {
           ...data
         })
         .eq('id', editingTransaction.id)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (error) throw error;
 
@@ -294,14 +302,14 @@ export default function Transactions() {
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    if (!user || !window.confirm('Are you sure you want to delete this transaction?')) return;
+    if (!effectiveUserId || isDemoMode || !window.confirm('Are you sure you want to delete this transaction?')) return; // Disabled in demo mode
 
     try {
       const { error } = await supabase
         .from('transactions')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (error) throw error;
 
@@ -312,7 +320,7 @@ export default function Transactions() {
   };
 
   const handleDownload = async (month?: string) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       let query = supabase
@@ -323,7 +331,7 @@ export default function Transactions() {
             name
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       if (month) {
         const startDate = `${month}-01`;
@@ -429,14 +437,24 @@ export default function Transactions() {
 
           <Link
             to="/upload"
-            className="flex items-center gap-2 bg-dark-800 text-indigo-400 px-4 py-2 rounded-lg hover:bg-dark-700 transition-colors border border-indigo-500"
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
+              isDemoMode
+                ? 'bg-dark-900 text-dark-500 border-dark-700 cursor-not-allowed'
+                : 'bg-dark-800 text-indigo-400 border-indigo-500 hover:bg-dark-700'
+            }`}
+            onClick={(e) => isDemoMode && e.preventDefault()}
           >
             <Upload size={20} />
             Upload
           </Link>
           <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            onClick={() => !isDemoMode && setIsAddModalOpen(true)}
+            disabled={isDemoMode}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              isDemoMode
+                ? 'bg-dark-900 text-dark-500 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
           >
             <Plus size={20} />
             Add Transaction
@@ -579,14 +597,16 @@ export default function Transactions() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => setEditingTransaction(transaction)}
-                      className="text-indigo-400 hover:text-indigo-300 mr-4"
+                      onClick={() => !isDemoMode && setEditingTransaction(transaction)}
+                      disabled={isDemoMode}
+                      className={isDemoMode ? "text-dark-600 mr-4 cursor-not-allowed" : "text-indigo-400 hover:text-indigo-300 mr-4"}
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
-                      onClick={() => handleDeleteTransaction(transaction.id)}
-                      className="text-red-400 hover:text-red-300"
+                      onClick={() => !isDemoMode && handleDeleteTransaction(transaction.id)}
+                      disabled={isDemoMode}
+                      className={isDemoMode ? "text-dark-600 cursor-not-allowed" : "text-red-400 hover:text-red-300"}
                     >
                       <Trash2 size={16} />
                     </button>

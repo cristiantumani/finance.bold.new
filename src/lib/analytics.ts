@@ -24,6 +24,12 @@ export async function trackEvent(
   properties: EventProperties = {}
 ) {
   try {
+    // Skip tracking in demo mode
+    const isDemoMode = sessionStorage.getItem('demoMode') === 'true';
+    if (isDemoMode) {
+      return;
+    }
+
     // Get current user synchronously
     const { data: { user } } = await supabase.auth.getUser();
 
