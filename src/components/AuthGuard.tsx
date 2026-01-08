@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [loading, setLoading] = useState(true);
   const [hasCategories, setHasCategories] = useState<boolean | null>(null);
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -64,6 +66,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, [user, location.pathname]);
+
+  // Allow access in demo mode without authentication checks
+  if (isDemoMode) {
+    return <>{children}</>;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
