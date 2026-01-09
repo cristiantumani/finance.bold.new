@@ -96,8 +96,12 @@ function ImprovedDashboard() {
     try {
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
-      const startDate = new Date(year, month, 1);
-      const endDate = new Date(year, month + 1, 0);
+
+      // Format dates correctly without timezone issues
+      const monthStr = (month + 1).toString().padStart(2, '0');
+      const startDate = `${year}-${monthStr}-01`;
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+      const endDate = `${year}-${monthStr}-${lastDayOfMonth.toString().padStart(2, '0')}`;
 
       // Fetch current month transactions
       const { data: transactionsData, error: transactionsError } = await supabase
@@ -110,8 +114,8 @@ function ImprovedDashboard() {
           )
         `)
         .eq('user_id', effectiveUserId)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0])
+        .gte('date', startDate)
+        .lte('date', endDate)
         .order('date', { ascending: false });
 
       if (transactionsError) throw transactionsError;
@@ -178,8 +182,8 @@ function ImprovedDashboard() {
         // Debug logging for October 2025
         const categoryName = (budget.categories as any)?.name;
         if (categoryName === 'Arriendo' && selectedDate.getFullYear() === 2025 && selectedDate.getMonth() === 9) {
-          console.log('=== DEBUG: Arriendo October 2025 ===');
-          console.log('Date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+          console.log('=== DEBUG: Arriendo October 2025 (FIXED) ===');
+          console.log('Date range:', startDate, 'to', endDate);
           console.log('Budget category_id:', budget.category_id);
           console.log('Matching transactions:', categoryTransactions);
           console.log('Calculated spent:', spent);
@@ -202,15 +206,19 @@ function ImprovedDashboard() {
         const trendMonth = new Date(year, month - i, 1);
         const trendYear = trendMonth.getFullYear();
         const trendMonthNum = trendMonth.getMonth();
-        const trendStart = new Date(trendYear, trendMonthNum, 1);
-        const trendEnd = new Date(trendYear, trendMonthNum + 1, 0);
+
+        // Format dates correctly without timezone issues
+        const trendMonthStr = (trendMonthNum + 1).toString().padStart(2, '0');
+        const trendStart = `${trendYear}-${trendMonthStr}-01`;
+        const trendLastDay = new Date(trendYear, trendMonthNum + 1, 0).getDate();
+        const trendEnd = `${trendYear}-${trendMonthStr}-${trendLastDay.toString().padStart(2, '0')}`;
 
         const { data: trendTxs } = await supabase
           .from('transactions')
           .select('type, amount')
           .eq('user_id', effectiveUserId)
-          .gte('date', trendStart.toISOString().split('T')[0])
-          .lte('date', trendEnd.toISOString().split('T')[0]);
+          .gte('date', trendStart)
+          .lte('date', trendEnd);
 
         const income = trendTxs?.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
         const expenses = trendTxs?.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
