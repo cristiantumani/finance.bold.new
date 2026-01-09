@@ -54,7 +54,7 @@ export default function Landing() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-2 mb-6">
             <Sparkles className="text-indigo-400" size={16} />
-            <span className="text-indigo-400 text-sm font-medium">Track expenses via WhatsApp • Upload Excel • AI-Powered Insights</span>
+            <span className="text-indigo-400 text-sm font-medium">WhatsApp Messages • Upload Excel • AI-Powered Insights</span>
           </div>
           <h1 className="text-6xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-6 leading-tight">
             Master Your Money,<br />Effortlessly
@@ -123,16 +123,21 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-2 mb-6">
-                <Zap className="text-green-400" size={16} />
-                <span className="text-green-400 text-sm font-medium">Unique Feature</span>
+              <div className="flex items-center gap-2 mb-6">
+                <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-2">
+                  <Zap className="text-green-400" size={16} />
+                  <span className="text-green-400 text-sm font-medium">Pro Feature</span>
+                </div>
+                <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
+                  <span className="text-yellow-400 text-xs font-medium">Image Upload Coming Soon</span>
+                </div>
               </div>
               <h2 className="text-4xl font-bold text-dark-50 mb-6">
-                Upload Expenses via <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">WhatsApp</span>
+                Track Expenses via <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">WhatsApp</span>
               </h2>
               <p className="text-xl text-dark-300 mb-8">
-                Simply send your receipt or transaction details to our WhatsApp bot.
-                We'll automatically extract and categorize the data in seconds.
+                Send transaction details to our WhatsApp bot and we'll automatically add them to your budget.
+                No app switching, no manual forms - just message and go.
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -140,8 +145,8 @@ export default function Landing() {
                     <CheckCircle className="text-green-400" size={20} />
                   </div>
                   <div>
-                    <h3 className="text-dark-100 font-semibold mb-1">Instant Upload</h3>
-                    <p className="text-dark-400">Take a photo of your receipt and send it via WhatsApp</p>
+                    <h3 className="text-dark-100 font-semibold mb-1">Quick Text Messages</h3>
+                    <p className="text-dark-400">Send amount and category - we handle the rest</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -149,8 +154,8 @@ export default function Landing() {
                     <CheckCircle className="text-green-400" size={20} />
                   </div>
                   <div>
-                    <h3 className="text-dark-100 font-semibold mb-1">AI-Powered Extraction</h3>
-                    <p className="text-dark-400">Automatically reads amount, date, and merchant</p>
+                    <h3 className="text-dark-100 font-semibold mb-1">Instant Sync</h3>
+                    <p className="text-dark-400">Expenses appear in your dashboard immediately</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -159,7 +164,16 @@ export default function Landing() {
                   </div>
                   <div>
                     <h3 className="text-dark-100 font-semibold mb-1">Smart Categorization</h3>
-                    <p className="text-dark-400">AI categorizes your expense into the right budget</p>
+                    <p className="text-dark-400">AI suggests the right budget category</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-yellow-500/10 p-2 rounded-lg">
+                    <Sparkles className="text-yellow-400" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-dark-100 font-semibold mb-1">Coming Soon: Receipt Scanning</h3>
+                    <p className="text-dark-400">Photo receipts and auto-extract all details</p>
                   </div>
                 </div>
               </div>
@@ -174,19 +188,27 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="space-y-4">
+                  <div className="flex gap-3 justify-end">
+                    <div className="bg-dark-700 rounded-2xl rounded-br-none p-4 max-w-[80%]">
+                      <p className="text-dark-200 text-sm">$45 groceries</p>
+                    </div>
+                  </div>
                   <div className="flex gap-3">
-                    <div className="bg-dark-700 rounded-2xl rounded-bl-none p-4 max-w-[80%]">
-                      <p className="text-dark-200 text-sm mb-2">📸 Receipt uploaded</p>
-                      <div className="bg-dark-900 p-3 rounded-lg">
-                        <p className="text-dark-300 text-xs">Coffee Shop Receipt</p>
-                        <p className="text-dark-100 font-semibold">$4.50</p>
-                      </div>
+                    <div className="bg-indigo-500 rounded-2xl rounded-bl-none p-4 max-w-[80%]">
+                      <p className="text-white text-sm">✅ Got it!</p>
+                      <p className="text-white/80 text-xs mt-1">Added $45.00 to Groceries</p>
+                      <p className="text-white/60 text-xs mt-1">Budget: $230/$400 remaining</p>
                     </div>
                   </div>
                   <div className="flex gap-3 justify-end">
-                    <div className="bg-indigo-500 rounded-2xl rounded-br-none p-4 max-w-[80%]">
-                      <p className="text-white text-sm">✅ Expense added!</p>
-                      <p className="text-white/80 text-xs mt-1">Category: Dining Out</p>
+                    <div className="bg-dark-700 rounded-2xl rounded-br-none p-4 max-w-[80%]">
+                      <p className="text-dark-200 text-sm">$25 coffee</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="bg-indigo-500 rounded-2xl rounded-bl-none p-4 max-w-[80%]">
+                      <p className="text-white text-sm">✅ Done!</p>
+                      <p className="text-white/80 text-xs mt-1">Added $25.00 to Dining Out</p>
                     </div>
                   </div>
                 </div>
@@ -209,17 +231,20 @@ export default function Landing() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-dark-800/50 p-8 rounded-2xl border border-dark-700 hover:border-indigo-500/50 transition-all group">
-              <div className="bg-green-500/10 p-4 rounded-xl w-fit mb-6 group-hover:scale-110 transition-transform">
-                <MessageCircle className="text-green-400" size={32} />
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-green-500/10 p-4 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                  <MessageCircle className="text-green-400" size={32} />
+                </div>
+                <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">PRO</span>
               </div>
               <h3 className="text-xl font-semibold text-dark-50 mb-3">
-                WhatsApp Upload
+                WhatsApp Messages
               </h3>
               <p className="text-dark-300 mb-4">
-                Send receipts directly from your phone. AI extracts all the details automatically.
+                Text your expenses to our bot. Quick, easy, hands-free tracking on the go.
               </p>
               <div className="text-indigo-400 text-sm font-medium">
-                Most Popular →
+                Most Convenient →
               </div>
             </div>
             <div className="bg-dark-800/50 p-8 rounded-2xl border border-dark-700 hover:border-indigo-500/50 transition-all group">
@@ -257,7 +282,7 @@ export default function Landing() {
       {/* Advanced Reports & Analytics */}
       <section className="py-20 bg-dark-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
             <div className="order-2 lg:order-1">
               <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-2xl">
                 <div className="mb-4">
@@ -324,6 +349,108 @@ export default function Landing() {
                   <div>
                     <h3 className="text-dark-100 font-semibold mb-1">Budget Performance</h3>
                     <p className="text-dark-400">Monitor budget usage with real-time alerts and trends</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Spending Pace Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mt-16">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
+                <TrendingUp className="text-blue-400" size={16} />
+                <span className="text-blue-400 text-sm font-medium">Spending Insights</span>
+              </div>
+              <h2 className="text-4xl font-bold text-dark-50 mb-6">
+                Spending Pace Analysis
+              </h2>
+              <p className="text-xl text-dark-300 mb-8">
+                See how quickly you're spending throughout the month compared to previous months.
+                Predict your month-end total and adjust before it's too late.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-500/10 p-2 rounded-lg">
+                    <TrendingUp className="text-blue-400" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-dark-100 font-semibold mb-1">Daily Spending Curves</h3>
+                    <p className="text-dark-400">Compare current month vs historical patterns</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-500/10 p-2 rounded-lg">
+                    <Target className="text-blue-400" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-dark-100 font-semibold mb-1">Predictive Totals</h3>
+                    <p className="text-dark-400">See projected month-end spending based on your pace</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-500/10 p-2 rounded-lg">
+                    <Calendar className="text-blue-400" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-dark-100 font-semibold mb-1">Historical Comparison</h3>
+                    <p className="text-dark-400">Track against previous 3 months automatically</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="order-first lg:order-last">
+              <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-2xl">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-dark-300 text-sm font-medium">Spending Pace - December 2025</span>
+                    <span className="text-dark-400 text-xs">Day 15 of 31</span>
+                  </div>
+                  {/* Curved Line Chart Visualization */}
+                  <div className="h-56 bg-dark-900 rounded-xl p-4 relative">
+                    <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+                      {/* Grid lines */}
+                      <line x1="0" y1="50" x2="400" y2="50" stroke="rgb(55, 65, 81)" strokeWidth="1" opacity="0.3" />
+                      <line x1="0" y1="100" x2="400" y2="100" stroke="rgb(55, 65, 81)" strokeWidth="1" opacity="0.3" />
+                      <line x1="0" y1="150" x2="400" y2="150" stroke="rgb(55, 65, 81)" strokeWidth="1" opacity="0.3" />
+
+                      {/* Previous months (gray) */}
+                      <path d="M 0 180 Q 50 170, 100 160 T 200 130 T 300 90 T 400 60"
+                            fill="none" stroke="rgb(107, 114, 128)" strokeWidth="2" opacity="0.4" />
+                      <path d="M 0 185 Q 50 175, 100 165 T 200 140 T 300 100 T 400 70"
+                            fill="none" stroke="rgb(107, 114, 128)" strokeWidth="2" opacity="0.4" />
+
+                      {/* Current month (blue gradient) */}
+                      <defs>
+                        <linearGradient id="spendingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="rgb(168, 85, 247)" stopOpacity="0.8" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M 0 190 Q 50 178, 100 168 T 193 145"
+                            fill="none" stroke="url(#spendingGradient)" strokeWidth="3" />
+
+                      {/* Current day marker */}
+                      <circle cx="193" cy="145" r="5" fill="rgb(99, 102, 241)" />
+                      <line x1="193" y1="0" x2="193" y2="200" stroke="rgb(34, 197, 94)" strokeWidth="2" strokeDasharray="4" opacity="0.6" />
+                    </svg>
+                    <div className="absolute top-2 right-2 text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded">
+                      Today
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  <div className="bg-dark-900 p-3 rounded-lg">
+                    <p className="text-dark-400 text-xs">Spent So Far</p>
+                    <p className="text-blue-400 font-bold">$1,845</p>
+                  </div>
+                  <div className="bg-dark-900 p-3 rounded-lg">
+                    <p className="text-dark-400 text-xs">Projected</p>
+                    <p className="text-purple-400 font-bold">$3,690</p>
+                  </div>
+                  <div className="bg-dark-900 p-3 rounded-lg">
+                    <p className="text-dark-400 text-xs">Budget</p>
+                    <p className="text-amber-400 font-bold">$4,000</p>
                   </div>
                 </div>
               </div>
@@ -476,7 +603,7 @@ export default function Landing() {
                 </li>
                 <li className="flex items-center gap-3 text-dark-200">
                   <CheckCircle size={20} className="text-emerald-400 flex-shrink-0" />
-                  WhatsApp & Excel upload
+                  Excel/CSV upload
                 </li>
                 <li className="flex items-center gap-3 text-dark-200">
                   <CheckCircle size={20} className="text-emerald-400 flex-shrink-0" />
@@ -485,6 +612,10 @@ export default function Landing() {
                 <li className="flex items-center gap-3 text-dark-200">
                   <CheckCircle size={20} className="text-emerald-400 flex-shrink-0" />
                   AI budget suggestions
+                </li>
+                <li className="flex items-center gap-3 text-dark-200">
+                  <CheckCircle size={20} className="text-emerald-400 flex-shrink-0" />
+                  WhatsApp expense tracking
                 </li>
                 <li className="flex items-center gap-3 text-dark-200">
                   <CheckCircle size={20} className="text-emerald-400 flex-shrink-0" />
@@ -551,10 +682,10 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="bg-dark-800/50 p-6 rounded-2xl border border-dark-700">
               <h3 className="text-lg font-semibold text-dark-50 mb-2">
-                How does WhatsApp upload work?
+                How does WhatsApp tracking work?
               </h3>
               <p className="text-dark-300">
-                Simply send a photo of your receipt or transaction details to our WhatsApp bot. Our AI reads and categorizes it automatically in seconds.
+                Send a text message with the amount and category (e.g., "$45 groceries") to our WhatsApp bot. It's instantly added to your budget. Receipt photo upload coming soon!
               </p>
             </div>
             <div className="bg-dark-800/50 p-6 rounded-2xl border border-dark-700">
