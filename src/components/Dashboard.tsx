@@ -169,12 +169,25 @@ function ImprovedDashboard() {
       // Calculate budget status
       let budgetsOnTrack = 0;
       const processedBudgets = budgetsData?.map(budget => {
-        const spent = transactionsData
-          ?.filter(t => t.type === 'expense' && t.category_id === budget.category_id)
-          .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+        const categoryTransactions = transactionsData?.filter(
+          t => t.type === 'expense' && t.category_id === budget.category_id
+        ) || [];
+
+        const spent = categoryTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+
+        // Debug logging for October 2025
+        const categoryName = (budget.categories as any)?.name;
+        if (categoryName === 'Arriendo' && selectedDate.getFullYear() === 2025 && selectedDate.getMonth() === 9) {
+          console.log('=== DEBUG: Arriendo October 2025 ===');
+          console.log('Date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+          console.log('Budget category_id:', budget.category_id);
+          console.log('Matching transactions:', categoryTransactions);
+          console.log('Calculated spent:', spent);
+          console.log('Budget limit:', budget.budget_limit);
+        }
 
         const percentage = budget.budget_limit > 0 ? (spent / budget.budget_limit) * 100 : 0;
-        if (percentage < 100) budgetsOnTrack++;
+        if (percentage <= 100) budgetsOnTrack++;
 
         return {
           ...budget,
@@ -613,7 +626,7 @@ function ImprovedDashboard() {
                           <p className="text-dark-200 font-medium text-sm">
                             {budget.categories?.name || 'Unknown'}
                           </p>
-                          {percentage >= 100 && (
+                          {percentage > 100 && (
                             <AlertTriangle className="text-red-400" size={14} />
                           )}
                         </div>
@@ -624,7 +637,7 @@ function ImprovedDashboard() {
                       <div className="relative h-2 bg-dark-700 rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all ${
-                            percentage >= 100
+                            percentage > 100
                               ? 'bg-red-500'
                               : percentage >= 80
                                 ? 'bg-yellow-500'
