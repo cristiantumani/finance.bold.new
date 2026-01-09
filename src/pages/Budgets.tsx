@@ -22,7 +22,8 @@ import {
   Download,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Upload
 } from 'lucide-react';
 import MonthSwitcher from '../components/MonthSwitcher';
 import { useAuth } from '../contexts/AuthContext';
@@ -469,13 +470,22 @@ export default function Budgets() {
                 onChange={setSelectedDate} 
               />
             </div>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Plus size={20} />
-              Add Budget
-            </button>
+            <div className="flex gap-3">
+              <Link
+                to="/budgets/upload"
+                className="flex items-center gap-2 bg-dark-800 text-dark-200 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-600"
+              >
+                <Upload size={20} />
+                Upload CSV
+              </Link>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                <Plus size={20} />
+                Add Budget
+              </button>
+            </div>
           </div>
         </div>
 

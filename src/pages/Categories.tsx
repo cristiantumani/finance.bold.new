@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, 
+import {
+  Plus,
   ArrowLeft,
   Edit2,
   Trash2,
@@ -11,7 +11,8 @@ import {
   Sliders,
   X,
   DollarSign,
-  HelpCircle
+  HelpCircle,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
@@ -185,16 +186,25 @@ export default function Categories() {
               Categories
             </h1>
           </div>
-          <button
-            onClick={() => {
-              setEditingCategory(null);
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <Plus size={20} />
-            Add Category
-          </button>
+          <div className="flex gap-3">
+            <Link
+              to="/categories/upload"
+              className="flex items-center gap-2 bg-dark-800 text-dark-200 px-4 py-2.5 rounded-xl hover:bg-dark-700 transition-all duration-200 border border-dark-600"
+            >
+              <Upload size={20} />
+              Upload CSV
+            </Link>
+            <button
+              onClick={() => {
+                setEditingCategory(null);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <Plus size={20} />
+              Add Category
+            </button>
+          </div>
         </div>
 
         <CategoryEducation />

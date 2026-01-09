@@ -16,6 +16,8 @@ import ExpenseTypes from './pages/ExpenseTypes';
 import Budgets from './pages/Budgets';
 import Reports from './pages/Reports';
 import TransactionUpload from './pages/TransactionUpload';
+import CategoryUpload from './pages/CategoryUpload';
+import BudgetUpload from './pages/BudgetUpload';
 import Documentation from './pages/Documentation';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -56,10 +58,24 @@ function App() {
                 </Layout>
               </AuthGuard>
             } />
+            <Route path="/categories/upload" element={
+              <AuthGuard>
+                <Layout>
+                  <CategoryUpload />
+                </Layout>
+              </AuthGuard>
+            } />
             <Route path="/budgets" element={
               <AuthGuard>
                 <Layout>
                   <Budgets />
+                </Layout>
+              </AuthGuard>
+            } />
+            <Route path="/budgets/upload" element={
+              <AuthGuard>
+                <Layout>
+                  <BudgetUpload />
                 </Layout>
               </AuthGuard>
             } />
