@@ -200,28 +200,28 @@ function ImprovedDashboard() {
         };
       }) || [];
 
-      // Fetch last 6 months data for trends
+      // OPTIMIZATION: Fetch last 6 months data in ONE query
       const trendsData: MonthlyTrend[] = [];
+      const oldestTrendMonth = new Date(year, month - 5, 1);
+      const oldestTrendStr = `${oldestTrendMonth.getFullYear()}-${(oldestTrendMonth.getMonth() + 1).toString().padStart(2, '0')}-01`;
+
+      const { data: allTrendTxs } = await supabase
+        .from('transactions')
+        .select('type, amount, date')
+        .eq('user_id', effectiveUserId)
+        .gte('date', oldestTrendStr)
+        .lte('date', endDate);
+
+      // Process each month from cached transactions
       for (let i = 5; i >= 0; i--) {
         const trendMonth = new Date(year, month - i, 1);
         const trendYear = trendMonth.getFullYear();
         const trendMonthNum = trendMonth.getMonth();
+        const trendMonthKey = `${trendYear}-${(trendMonthNum + 1).toString().padStart(2, '0')}`;
 
-        // Format dates correctly without timezone issues
-        const trendMonthStr = (trendMonthNum + 1).toString().padStart(2, '0');
-        const trendStart = `${trendYear}-${trendMonthStr}-01`;
-        const trendLastDay = new Date(trendYear, trendMonthNum + 1, 0).getDate();
-        const trendEnd = `${trendYear}-${trendMonthStr}-${trendLastDay.toString().padStart(2, '0')}`;
-
-        const { data: trendTxs } = await supabase
-          .from('transactions')
-          .select('type, amount')
-          .eq('user_id', effectiveUserId)
-          .gte('date', trendStart)
-          .lte('date', trendEnd);
-
-        const income = trendTxs?.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
-        const expenses = trendTxs?.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+        const monthTxs = allTrendTxs?.filter(t => t.date.startsWith(trendMonthKey)) || [];
+        const income = monthTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+        const expenses = monthTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
 
         trendsData.push({
           month: trendMonth.toLocaleDateString('en-US', { month: 'short' }),

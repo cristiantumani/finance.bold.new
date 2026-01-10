@@ -193,7 +193,25 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
 
         if (budgetError) throw budgetError;
 
-        // Process last N months
+        // OPTIMIZATION: Fetch ALL transactions for the period in ONE query
+        const oldestMonth = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 1);
+        const oldestMonthStr = `${oldestMonth.getFullYear()}-${(oldestMonth.getMonth() + 1).toString().padStart(2, '0')}-01`;
+        const currentMonthStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const currentEndStr = `${currentMonthStr}-${lastDay.toString().padStart(2, '0')}`;
+
+        const { data: allTransactions, error: allTxError } = await supabase
+          .from('transactions')
+          .select('amount, date')
+          .eq('user_id', effectiveUserId)
+          .eq('type', 'expense')
+          .eq('category_id', categoryId)
+          .gte('date', oldestMonthStr)
+          .lte('date', currentEndStr);
+
+        if (allTxError) throw allTxError;
+
+        // Process last N months using cached transactions
         for (let i = 0; i < monthsBack; i++) {
           const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const targetYear = targetDate.getFullYear();
@@ -215,27 +233,17 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
 
           const budget = applicableBudget.budget_limit;
 
-          // Fetch transactions for this month
-          const startDate = `${targetYear}-${monthStr}-01`;
-          const endDate = new Date(targetYear, targetMonth, 0).toISOString().split('T')[0];
+          // Filter cached transactions for this month
+          const monthTransactions = allTransactions?.filter(tx =>
+            tx.date.startsWith(monthKey)
+          ) || [];
 
-          const { data: transactions, error: txError } = await supabase
-            .from('transactions')
-            .select('amount')
-            .eq('user_id', effectiveUserId)
-            .eq('type', 'expense')
-            .eq('category_id', categoryId)
-            .gte('date', startDate)
-            .lte('date', endDate);
-
-          if (txError) throw txError;
-
-          const spent = transactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
+          const spent = monthTransactions.reduce((sum, tx) => sum + tx.amount, 0);
           const remaining = budget - spent;
           const percentage = budget > 0 ? (spent / budget) * 100 : 0;
 
           let status: BudgetStatus = 'under';
-          if (percentage >= 100) {
+          if (percentage > 100) {
             status = 'over';
           } else if (percentage >= 85) {
             status = 'near';
@@ -348,7 +356,24 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
         const now = new Date();
         const suggestionsData: BudgetSuggestion[] = [];
 
-        // Process each budget
+        // OPTIMIZATION: Fetch ALL transactions for the period in ONE query
+        const oldestMonth = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 1);
+        const oldestMonthStr = `${oldestMonth.getFullYear()}-${(oldestMonth.getMonth() + 1).toString().padStart(2, '0')}-01`;
+        const currentMonthStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const currentEndStr = `${currentMonthStr}-${lastDay.toString().padStart(2, '0')}`;
+
+        const { data: allTransactions, error: allTxError } = await supabase
+          .from('transactions')
+          .select('amount, category_id, date')
+          .eq('user_id', effectiveUserId)
+          .eq('type', 'expense')
+          .gte('date', oldestMonthStr)
+          .lte('date', currentEndStr);
+
+        if (allTxError) throw allTxError;
+
+        // Process each budget using the cached transactions
         for (const budget of budgets || []) {
           const category = budget.categories as any;
           if (!category) continue;
@@ -358,28 +383,21 @@ export function useBudgetSuggestions(monthsBack: TimeRange = 6) {
           let monthsUnderBudget = 0;
           const spentValues: number[] = [];
 
-          // Collect data for the last N months
+          // Collect data for the last N months (from cached transactions)
           for (let i = 0; i < monthsBack; i++) {
             const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const targetYear = targetDate.getFullYear();
             const targetMonth = targetDate.getMonth() + 1;
             const monthStr = targetMonth.toString().padStart(2, '0');
-            const startDate = `${targetYear}-${monthStr}-01`;
-            const endDate = new Date(targetYear, targetMonth, 0).toISOString().split('T')[0];
+            const monthKey = `${targetYear}-${monthStr}`;
 
-            // Fetch transactions for this month
-            const { data: transactions, error: txError } = await supabase
-              .from('transactions')
-              .select('amount')
-              .eq('user_id', effectiveUserId)
-              .eq('type', 'expense')
-              .eq('category_id', budget.category_id)
-              .gte('date', startDate)
-              .lte('date', endDate);
+            // Filter cached transactions for this month and category
+            const monthTransactions = allTransactions?.filter(tx =>
+              tx.category_id === budget.category_id &&
+              tx.date.startsWith(monthKey)
+            ) || [];
 
-            if (txError) throw txError;
-
-            const spent = transactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
+            const spent = monthTransactions.reduce((sum, tx) => sum + tx.amount, 0);
             const percentage = budget.budget_limit > 0 ? (spent / budget.budget_limit) * 100 : 0;
 
             totalSpent += spent;

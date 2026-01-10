@@ -47,7 +47,24 @@ export function useSpendingPace(year: number, month: number, monthsToCompare: nu
         const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
         setCurrentDayOfMonth(isCurrentMonth ? now.getDate() : 31);
 
-        // Fetch data for selected month + previous months
+        // OPTIMIZATION: Fetch ALL months data in ONE query
+        const oldestDate = new Date(year, month - monthsToCompare, 1);
+        const oldestDateStr = `${oldestDate.getFullYear()}-${(oldestDate.getMonth() + 1).toString().padStart(2, '0')}-01`;
+        const currentDateStr = `${year}-${month.toString().padStart(2, '0')}`;
+        const lastDayOfMonth = new Date(year, month, 0).getDate();
+        const endDateStr = `${currentDateStr}-${lastDayOfMonth.toString().padStart(2, '0')}`;
+
+        const { data: allTransactions, error: allTxError } = await supabase
+          .from('transactions')
+          .select('date, amount')
+          .eq('user_id', effectiveUserId)
+          .eq('type', 'expense')
+          .gte('date', oldestDateStr)
+          .lte('date', endDateStr);
+
+        if (allTxError) throw allTxError;
+
+        // Process each month from cached transactions
         for (let i = 0; i < monthsToCompare; i++) {
           // Calculate year and month for this iteration
           const targetDate = new Date(year, month - 1 - i, 1);
@@ -56,24 +73,11 @@ export function useSpendingPace(year: number, month: number, monthsToCompare: nu
           const monthStr = targetMonth.toString().padStart(2, '0');
           const monthKey = `${targetYear}-${monthStr}`;
 
-          // Calculate first and last day of the month
-          const firstDay = `${targetYear}-${monthStr}-01`;
-          const lastDay = new Date(targetYear, targetMonth, 0);
-          const lastDayStr = lastDay.toISOString().split('T')[0];
-
-          // Fetch all expense transactions for this month
-          const { data: transactions, error: txError } = await supabase
-            .from('transactions')
-            .select('date, amount')
-            .eq('user_id', effectiveUserId)
-            .eq('type', 'expense')
-            .gte('date', firstDay)
-            .lte('date', lastDayStr);
-
-          if (txError) throw txError;
+          // Filter cached transactions for this month
+          const transactions = allTransactions?.filter(tx => tx.date.startsWith(monthKey)) || [];
 
           // Get the number of days in this month
-          const daysInMonth = lastDay.getDate();
+          const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
 
           // Aggregate by day of month
           const dailyMap = new Map<number, number>();
