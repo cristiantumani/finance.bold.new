@@ -203,6 +203,7 @@ export default function BudgetPerformance({ year, month }: Props) {
     switch (status) {
       case 'under': return 'text-green-400';
       case 'near': return 'text-yellow-400';
+      case 'on_budget': return 'text-purple-400';
       case 'over': return 'text-red-400';
       default: return 'text-dark-400';
     }
@@ -212,6 +213,7 @@ export default function BudgetPerformance({ year, month }: Props) {
     switch (status) {
       case 'under': return 'bg-green-500';
       case 'near': return 'bg-yellow-500';
+      case 'on_budget': return 'bg-purple-500';
       case 'over': return 'bg-red-500';
       default: return 'bg-dark-600';
     }
@@ -221,6 +223,7 @@ export default function BudgetPerformance({ year, month }: Props) {
     switch (status) {
       case 'under': return <CheckCircle size={16} className="text-green-400" />;
       case 'near': return <AlertCircle size={16} className="text-yellow-400" />;
+      case 'on_budget': return <CheckCircle size={16} className="text-purple-400" />;
       case 'over': return <XCircle size={16} className="text-red-400" />;
       default: return null;
     }
@@ -291,6 +294,7 @@ export default function BudgetPerformance({ year, month }: Props) {
     total: monthData.length,
     under: monthData.filter(c => c.status === 'under').length,
     near: monthData.filter(c => c.status === 'near').length,
+    on_budget: monthData.filter(c => c.status === 'on_budget').length,
     over: monthData.filter(c => c.status === 'over').length,
   };
 
@@ -413,7 +417,7 @@ export default function BudgetPerformance({ year, month }: Props) {
       {activeTab === 'month' && (
         <div>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-dark-700 rounded-lg p-4">
               <p className="text-dark-400 text-sm mb-1">Total Categories</p>
               <p className="text-2xl font-bold text-dark-50">{summary.total}</p>
@@ -431,6 +435,13 @@ export default function BudgetPerformance({ year, month }: Props) {
                 <p className="text-dark-400 text-sm">Near Limit</p>
               </div>
               <p className="text-2xl font-bold text-yellow-400">{summary.near}</p>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle size={16} className="text-purple-400" />
+                <p className="text-dark-400 text-sm">On Budget</p>
+              </div>
+              <p className="text-2xl font-bold text-purple-400">{summary.on_budget}</p>
             </div>
             <div className="bg-dark-700 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">

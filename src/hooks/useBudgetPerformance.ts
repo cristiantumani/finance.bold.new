@@ -7,7 +7,7 @@ import type { ReportError } from '../types/reports';
 // Demo user ID for demo mode
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-export type BudgetStatus = 'under' | 'near' | 'over';
+export type BudgetStatus = 'under' | 'near' | 'on_budget' | 'over';
 
 export type CategoryBudgetPerformance = {
   category_id: string;
@@ -124,9 +124,11 @@ export function useBudgetPerformance(year: number, month: number) {
           const percentage = budget.budget_limit > 0 ? (spent / budget.budget_limit) * 100 : 0;
 
           let status: BudgetStatus = 'under';
-          if (percentage >= 100) {
+          if (percentage > 100) {
             status = 'over';
-          } else if (percentage >= 85) {
+          } else if (percentage === 100) {
+            status = 'on_budget';
+          } else if (percentage >= 90) {
             status = 'near';
           }
 
@@ -245,7 +247,9 @@ export function useCategoryBudgetHistory(categoryId: string, monthsBack: number 
           let status: BudgetStatus = 'under';
           if (percentage > 100) {
             status = 'over';
-          } else if (percentage >= 85) {
+          } else if (percentage === 100) {
+            status = 'on_budget';
+          } else if (percentage >= 90) {
             status = 'near';
           }
 

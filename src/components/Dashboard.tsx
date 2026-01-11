@@ -647,9 +647,11 @@ function ImprovedDashboard() {
                           className={`h-full transition-all ${
                             percentage > 100
                               ? 'bg-red-500'
-                              : percentage >= 80
-                                ? 'bg-yellow-500'
-                                : 'bg-emerald-500'
+                              : percentage === 100
+                                ? 'bg-purple-500'
+                                : percentage >= 90
+                                  ? 'bg-yellow-500'
+                                  : 'bg-emerald-500'
                           }`}
                           style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
