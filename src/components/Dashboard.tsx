@@ -254,6 +254,24 @@ function ImprovedDashboard() {
     fetchData();
   }, [effectiveUserId, selectedDate]);
 
+  const handleAddTransaction = async (data: Omit<Transaction, 'id'>) => {
+    if (!effectiveUserId || isDemoMode) return;
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .insert([{ user_id: effectiveUserId, ...data }]);
+
+      if (error) throw error;
+
+      await fetchData();
+      setIsModalOpen(false);
+      setShowQuickAdd(false);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -709,11 +727,8 @@ function ImprovedDashboard() {
         <TransactionForm
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSuccess={() => {
-            fetchData();
-            setIsModalOpen(false);
-            setShowQuickAdd(false);
-          }}
+          onSubmit={handleAddTransaction}
+          title="Add Transaction"
         />
       )}
     </div>
