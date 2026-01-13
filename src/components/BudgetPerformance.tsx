@@ -370,7 +370,7 @@ export default function BudgetPerformance({ year, month }: Props) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-dark-700">
+      <div className="flex flex-wrap gap-2 mb-6 border-b border-dark-700">
         <button
           onClick={() => setActiveTab('month')}
           className={`px-4 py-2 font-medium transition-colors ${
