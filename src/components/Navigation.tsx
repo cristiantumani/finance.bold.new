@@ -39,6 +39,12 @@ const navigationItems: NavLinkItem[] = [
     description: 'View & manage all transactions',
   },
   {
+    name: 'Reports',
+    path: '/reports',
+    icon: <BarChart3 size={20} />,
+    description: 'Insights & analytics',
+  },
+  {
     name: 'Categories',
     path: '/categories',
     icon: <FolderOpen size={20} />,
@@ -49,12 +55,6 @@ const navigationItems: NavLinkItem[] = [
     path: '/budgets',
     icon: <Wallet size={20} />,
     description: 'Set & track budgets',
-  },
-  {
-    name: 'Reports',
-    path: '/reports',
-    icon: <BarChart3 size={20} />,
-    description: 'Insights & analytics',
   },
   {
     name: 'Import',

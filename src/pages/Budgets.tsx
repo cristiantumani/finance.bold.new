@@ -44,6 +44,7 @@ type BudgetWithCategory = Budget & {
     name: string;
     expense_type: 'fixed' | 'variable' | 'controllable_fixed';
   } | null;
+  isMonthSpecific?: boolean; // Flag to indicate if this budget is month-specific
 };
 
 type BudgetSummary = {
@@ -102,8 +103,10 @@ export default function Budgets() {
       // Format date for query
       const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      const monthKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
 
       // Fetch budgets with their categories
+      // Get both month-specific and global budgets
       let query = supabase
         .from('budgets')
         .select(`
@@ -113,7 +116,8 @@ export default function Budgets() {
             expense_type
           )
         `)
-        .eq('user_id', effectiveUserId);
+        .eq('user_id', effectiveUserId)
+        .or(`month.eq.${monthKey},month.is.null`);
 
       // Apply period filter
       if (periodFilter !== 'all') {
@@ -124,8 +128,33 @@ export default function Budgets() {
 
       if (error) throw error;
 
+      // Group budgets by category and pick the right one for this month
+      // Month-specific budgets take precedence over global ones
+      const budgetsByCategory = new Map<string, BudgetWithCategory>();
+
+      (data as BudgetWithCategory[]).forEach(budget => {
+        const existing = budgetsByCategory.get(budget.category_id);
+
+        if (!existing) {
+          // First budget for this category
+          budgetsByCategory.set(budget.category_id, {
+            ...budget,
+            isMonthSpecific: budget.month === monthKey
+          });
+        } else if (budget.month === monthKey) {
+          // Month-specific budget takes precedence
+          budgetsByCategory.set(budget.category_id, {
+            ...budget,
+            isMonthSpecific: true
+          });
+        }
+        // If existing is month-specific and current is global, keep existing
+      });
+
+      const uniqueBudgets = Array.from(budgetsByCategory.values());
+
       // For each budget, fetch the spent amount for the selected month
-      const budgetsWithSpent = await Promise.all((data as BudgetWithCategory[]).map(async (budget) => {
+      const budgetsWithSpent = await Promise.all(uniqueBudgets.map(async (budget) => {
         const { data: spentData, error: spentError } = await supabase
           .from('transactions')
           .select('amount')
@@ -284,19 +313,39 @@ export default function Budgets() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleAddBudget = async (data: Omit<Budget, 'id' | 'spent'>) => {
+  const handleAddBudget = async (data: Omit<Budget, 'id' | 'spent'> & { id?: string }) => {
     if (!effectiveUserId || isDemoMode) return; // Disabled in demo mode
 
     try {
-      const { error } = await supabase
-        .from('budgets')
-        .insert([{
-          user_id: effectiveUserId,
-          spent: 0,
-          ...data
-        }]);
+      // If data includes an ID, we're updating an existing budget
+      if (data.id) {
+        const { error } = await supabase
+          .from('budgets')
+          .update({
+            category_id: data.category_id,
+            budget_limit: data.budget_limit,
+            period: data.period,
+            month: data.month
+          })
+          .eq('id', data.id)
+          .eq('user_id', effectiveUserId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Creating a new budget
+        const { error } = await supabase
+          .from('budgets')
+          .insert([{
+            user_id: effectiveUserId,
+            spent: 0,
+            category_id: data.category_id,
+            budget_limit: data.budget_limit,
+            period: data.period,
+            month: data.month
+          }]);
+
+        if (error) throw error;
+      }
 
       setIsModalOpen(false);
       fetchBudgets();
@@ -305,16 +354,23 @@ export default function Budgets() {
     }
   };
 
-  const handleUpdateBudget = async (data: Omit<Budget, 'id' | 'spent'>) => {
-    if (!effectiveUserId || !editingBudget || isDemoMode) return; // Disabled in demo mode
+  const handleUpdateBudget = async (data: Omit<Budget, 'id' | 'spent'> & { id?: string }) => {
+    if (!effectiveUserId || isDemoMode) return; // Disabled in demo mode
+
+    // Use the ID from data if provided, otherwise use editingBudget.id
+    const budgetId = data.id || editingBudget?.id;
+    if (!budgetId) return;
 
     try {
       const { error } = await supabase
         .from('budgets')
         .update({
-          ...data
+          category_id: data.category_id,
+          budget_limit: data.budget_limit,
+          period: data.period,
+          month: data.month
         })
-        .eq('id', editingBudget.id)
+        .eq('id', budgetId)
         .eq('user_id', effectiveUserId);
 
       if (error) throw error;
@@ -685,8 +741,15 @@ export default function Budgets() {
                   return (
                     <tr key={budget.id} className="hover:bg-dark-700/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-dark-100 font-medium">
-                          {budget.categories?.name || 'Uncategorized'}
+                        <div className="flex items-center gap-2">
+                          <span className="text-dark-100 font-medium">
+                            {budget.categories?.name || 'Uncategorized'}
+                          </span>
+                          {budget.isMonthSpecific && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-indigo-500/20 text-indigo-400 rounded-full">
+                              This month
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-dark-400">
                           {expenseType}
@@ -765,6 +828,7 @@ export default function Budgets() {
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleAddBudget}
           title="Add Budget"
+          selectedMonth={selectedDate}
         />
       )}
 
@@ -775,6 +839,7 @@ export default function Budgets() {
           onSubmit={handleUpdateBudget}
           initialData={editingBudget}
           title="Edit Budget"
+          selectedMonth={selectedDate}
         />
       )}
     </div>

@@ -26,6 +26,7 @@ export type Budget = {
   budget_limit: number;
   spent: number;
   period: 'monthly' | 'weekly' | 'yearly';
+  month?: string | null; // YYYY-MM format, null means applies to all months
 };
 
 export type FinancialHealth = {

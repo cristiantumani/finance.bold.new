@@ -23,6 +23,7 @@ import { useDemo } from '../contexts/DemoContext';
 import { supabase } from '../lib/supabase';
 import MonthSwitcher from './MonthSwitcher';
 import TransactionForm from './TransactionForm';
+import SpendingPace from './SpendingPace';
 import type { Transaction, Budget } from '../types/finance';
 import { Link } from 'react-router-dom';
 
@@ -441,6 +442,14 @@ function ImprovedDashboard() {
             ))}
           </div>
         )}
+
+        {/* Spending Pace Analysis */}
+        <div className="mb-8">
+          <SpendingPace
+            year={selectedDate.getFullYear()}
+            month={selectedDate.getMonth() + 1}
+          />
+        </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
