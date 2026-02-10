@@ -64,30 +64,29 @@ export default function Transactions() {
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [filters, setFilters] = useState<FilterConfig>({
-    month: 'all',
-    type: 'all',
-    category: 'all'
-  });
-  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
-  const itemsPerPage = 10;
 
-  // Read URL parameters on mount and apply filters
-  useEffect(() => {
+  // Initialize filters from URL params if present
+  const [filters, setFilters] = useState<FilterConfig>(() => {
     const categoryParam = searchParams.get('category');
     const monthParam = searchParams.get('month');
     const typeParam = searchParams.get('type');
 
-    if (categoryParam || monthParam || typeParam) {
-      setFilters(prev => ({
-        month: monthParam || prev.month,
-        type: (typeParam as 'all' | 'income' | 'expense') || prev.type,
-        category: categoryParam || prev.category
-      }));
-      // Clear URL params after applying them
-      setSearchParams({}, { replace: true });
+    return {
+      month: monthParam || 'all',
+      type: (typeParam as 'all' | 'income' | 'expense') || 'all',
+      category: categoryParam || 'all'
+    };
+  });
+  const itemsPerPage = 10;
+
+  // Clear URL params after initial load (keep filters in state)
+  useEffect(() => {
+    if (searchParams.has('category') || searchParams.has('month') || searchParams.has('type')) {
+      // Use setTimeout to ensure filters are applied before clearing URL
+      setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 100);
     }
-    setUrlParamsApplied(true);
   }, []);
 
   const fetchCategories = async () => {
