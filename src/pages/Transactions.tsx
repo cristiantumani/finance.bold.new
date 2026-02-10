@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -49,6 +49,7 @@ type FilterConfig = {
 export default function Transactions() {
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,7 +69,26 @@ export default function Transactions() {
     type: 'all',
     category: 'all'
   });
+  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
   const itemsPerPage = 10;
+
+  // Read URL parameters on mount and apply filters
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const monthParam = searchParams.get('month');
+    const typeParam = searchParams.get('type');
+
+    if (categoryParam || monthParam || typeParam) {
+      setFilters(prev => ({
+        month: monthParam || prev.month,
+        type: (typeParam as 'all' | 'income' | 'expense') || prev.type,
+        category: categoryParam || prev.category
+      }));
+      // Clear URL params after applying them
+      setSearchParams({}, { replace: true });
+    }
+    setUrlParamsApplied(true);
+  }, []);
 
   const fetchCategories = async () => {
     if (!effectiveUserId) return;

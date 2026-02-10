@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -186,6 +187,7 @@ type Props = {
 export default function BudgetPerformance({ year, month }: Props) {
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'month' | 'category' | 'suggestions'>('month');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>(6);
@@ -582,7 +584,7 @@ export default function BudgetPerformance({ year, month }: Props) {
                   const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
                   return (
-                    <div key={monthHistory.month} className="bg-dark-700 rounded-lg p-3 flex items-center justify-between">
+                    <div key={monthHistory.month} className="bg-dark-700 rounded-lg p-3 flex items-center justify-between group hover:bg-dark-600 transition-colors">
                       <div className="flex items-center gap-3">
                         {getStatusIcon(monthHistory.status)}
                         <span className="text-dark-200">{monthLabel}</span>
@@ -599,6 +601,13 @@ export default function BudgetPerformance({ year, month }: Props) {
                         <div className={`text-right min-w-[60px] ${getStatusColor(monthHistory.status)}`}>
                           <p className="font-semibold">{monthHistory.percentage.toFixed(0)}%</p>
                         </div>
+                        <button
+                          onClick={() => navigate(`/transactions?category=${selectedCategory}&month=${monthHistory.month}&type=expense`)}
+                          className="opacity-0 group-hover:opacity-100 px-3 py-1 text-xs text-indigo-400 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 transition-all"
+                          title="View transactions for this month"
+                        >
+                          View →
+                        </button>
                       </div>
                     </div>
                   );
